@@ -1,16 +1,22 @@
 import { RootProvider } from 'fumadocs-ui/provider/next';
 import './global.css';
-import { Inter } from 'next/font/google';
+import { Inter, Barlow } from 'next/font/google';
 
 const inter = Inter({
   subsets: ['latin'],
 });
 
+const barlow = Barlow({
+  subsets: ['latin'],
+  weight: ['500', '600', '700'],
+  variable: '--font-barlow',
+});
+
 export default function Layout({ children }: LayoutProps<'/'>) {
   return (
-    <html lang="en" className={inter.className} suppressHydrationWarning>
+    <html lang="en" className={`dark ${inter.className} ${barlow.variable}`} suppressHydrationWarning>
       <body className="flex flex-col min-h-screen">
-        <RootProvider>{children}</RootProvider>
+        <RootProvider theme={{ enabled: false }}>{children}</RootProvider>
       </body>
     </html>
   );
