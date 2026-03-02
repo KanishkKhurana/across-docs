@@ -1,0 +1,64 @@
+---
+title: BNB Smart Chain Migration Guide
+description: Enable BNB Smart Chain (Chain ID 56) bridging for USDC, USDT, and ETH.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+Across supports bridging USDC, USDT, and ETH to and from BNB Smart Chain (Chain ID 56). This guide covers the API changes required for developers, integrators, and relayers.
+
+<Callout type="info">
+  BNB Smart Chain is the first chain using [Across V4's ZK settlement](/docs/guides/concepts/across-v4). No testnet is available — test on mainnet with small amounts.
+</Callout>
+
+## API Changes
+
+### New `outputAmount` Field
+
+The `/suggested-fees` endpoint now returns a calculated `outputAmount` field directly. **Stop calculating output amounts manually.**
+
+```ts title="output-amount-change.ts"
+// Old approach (deprecated) — do NOT use
+const outputAmount = inputAmount * (1n * 10n**18n - BigInt(fees.totalRelayFee.pct)) / 10n**18n;
+
+// New approach (required) — use the API response directly
+const outputAmount = fees.outputAmount;
+```
+
+### `allowUnmatchedDecimals` Parameter
+
+A new optional query parameter `allowUnmatchedDecimals` has been added to `/suggested-fees`. When omitted, the API returns a `4XX` error if input and output tokens have different decimal counts (e.g., USDC has 6 decimals on some chains, 18 on others).
+
+Set `allowUnmatchedDecimals=true` if you're intentionally bridging between tokens with different decimals.
+
+## `outputToken` Requirements
+
+<Callout type="warn">
+  **For BSC routes, you must NOT set `outputToken` to `0x0`.** Integrators must explicitly specify the output token address for all BNB Smart Chain transfers.
+</Callout>
+
+### Deprecation Timeline
+
+| Date | Change |
+|------|--------|
+| Now | `outputToken=0x0` still works on non-BSC routes |
+| **June 19, 2025** | Protocol contracts will prevent `outputToken=0x0` network-wide |
+
+**Action required**: Update all integrations to explicitly specify `outputToken` addresses before the June deadline.
+
+## For Relayers and Indexers
+
+- Recognize chain ID `56` in your configurations
+- **Reject** any BSC deposits where `outputToken` is set to `0x0`
+- Prepare for complete `outputToken=0x0` removal by June 19, 2025
+
+## Key Details
+
+| Property | Value |
+|----------|-------|
+| **Chain ID** | `56` |
+| **Supported tokens** | USDC, USDT, ETH |
+| **Deposit function** | `depositV3()` |
+| **Settlement** | Across V4 (ZK proofs via Succinct SP1) |
+| **Testnet** | Not available |
+| **App-SDK** | Supported |

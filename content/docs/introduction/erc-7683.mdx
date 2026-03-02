@@ -1,0 +1,192 @@
+---
+title: ERC-7683 in Production
+description: Submit crosschain intents using the ERC-7683 standard via AcrossOriginSettler.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
+
+[ERC-7683](https://erc7683.org) is a standard for crosschain intent orders. Instead of users specifying complex execution paths, they declare their desired outcome — and a competitive network of relayers handles fulfillment. Across implements ERC-7683 through the **AcrossOriginSettler** contract.
+
+## AcrossOriginSettler
+
+The AcrossOriginSettler is the on-chain entry point for ERC-7683 intents. It validates intent parameters and creates deposits on SpokePool contracts (via `depositV3()` or `unsafeDeposit()`).
+
+### Deployments
+
+| Chain | Address |
+|-------|---------|
+| Base | `0x4afb570AC68BfFc26Bb02FdA3D801728B0f93C9E` |
+| Arbitrum | `0xB0B07055F214Ce59ccB968663d3435B9f3294998` |
+
+## The `open()` Function
+
+The core function takes three parameters:
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `fillDeadline` | `uint256` | Unix timestamp — deadline for the intent to be filled |
+| `orderDataType` | `bytes32` | EIP-712 typehash specifying the data format |
+| `orderData` | `bytes` | ABI-encoded parameters defining the desired outcome |
+
+The `orderDataType` for Across intents is:
+
+```
+0x9df4b782e7bbc178b3b93bfe8aafb909e84e39484d7f3c59f400f1b4691f85e2
+```
+
+The `orderData` encodes all the transfer details: input/output tokens, amounts, chains, recipient, and more.
+
+## Generating Order Data
+
+<Tabs items={["viem (TypeScript)", "Web Generator"]}>
+  <Tab value="viem (TypeScript)">
+    Use viem's `encodeAbiParameters()` to construct the `orderData`:
+
+    ```ts title="generate-order-data.ts"
+    import { encodeAbiParameters, parseAbiParameters } from "viem";
+
+    const orderData = encodeAbiParameters(
+      parseAbiParameters([
+        "address outputToken",
+        "uint256 outputAmount",
+        "uint256 destinationChainId",
+        "address recipient",
+        "address exclusiveRelayer",
+        "uint32 exclusivityDeadline",
+        "bytes message",
+      ]),
+      [
+        "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", // USDC on Base
+        1000000n,                                       // 1 USDC (6 decimals)
+        8453n,                                          // Base
+        "0xYourRecipientAddress",
+        "0x0000000000000000000000000000000000000000",    // No exclusive relayer
+        0,                                              // No exclusivity
+        "0x",                                           // No message
+      ]
+    );
+    ```
+  </Tab>
+  <Tab value="Web Generator">
+    Use the intent generator tool to build order data interactively:
+
+    **crosschain-intents-generator.vercel.app**
+
+    This tool lets you configure all parameters visually and outputs the encoded `orderData` and `fillDeadline` ready to pass to `open()`.
+  </Tab>
+</Tabs>
+
+## Full Integration Example
+
+<Steps>
+  <Step>
+    ### Approve Token Spending
+
+    Approve the AcrossOriginSettler contract to spend your input token.
+
+    ```ts title="approve.ts"
+    import { createWalletClient, createPublicClient, http, parseAbi } from "viem";
+    import { base } from "viem/chains";
+    import { privateKeyToAccount } from "viem/accounts";
+
+    const account = privateKeyToAccount("0xYOUR_PRIVATE_KEY");
+
+    const walletClient = createWalletClient({
+      account,
+      chain: base,
+      transport: http(),
+    });
+
+    const publicClient = createPublicClient({
+      chain: base,
+      transport: http(),
+    });
+
+    const USDC_BASE = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
+    const ORIGIN_SETTLER_BASE = "0x4afb570AC68BfFc26Bb02FdA3D801728B0f93C9E";
+
+    // Approve USDC spending
+    const approveHash = await walletClient.writeContract({
+      address: USDC_BASE,
+      abi: parseAbi(["function approve(address spender, uint256 amount)"]),
+      functionName: "approve",
+      args: [ORIGIN_SETTLER_BASE, 1000000000n], // 1000 USDC max
+    });
+
+    await publicClient.waitForTransactionReceipt({ hash: approveHash });
+    console.log("Approval confirmed:", approveHash);
+    ```
+  </Step>
+  <Step>
+    ### Generate Order Data
+
+    Encode the intent parameters.
+
+    ```ts title="order-data.ts"
+    import { encodeAbiParameters, parseAbiParameters } from "viem";
+
+    const fillDeadline = Math.floor(Date.now() / 1000) + 3600; // 1 hour from now
+
+    const orderDataType =
+      "0x9df4b782e7bbc178b3b93bfe8aafb909e84e39484d7f3c59f400f1b4691f85e2";
+
+    const orderData = encodeAbiParameters(
+      parseAbiParameters([
+        "address outputToken",
+        "uint256 outputAmount",
+        "uint256 destinationChainId",
+        "address recipient",
+        "address exclusiveRelayer",
+        "uint32 exclusivityDeadline",
+        "bytes message",
+      ]),
+      [
+        "0xaf88d065e77c8cC2239327C5EDb3A432268e5831", // USDC on Arbitrum
+        100000000n,                                     // 100 USDC
+        42161n,                                         // Arbitrum
+        account.address,
+        "0x0000000000000000000000000000000000000000",
+        0,
+        "0x",
+      ]
+    );
+    ```
+  </Step>
+  <Step>
+    ### Call `open()`
+
+    Submit the intent to the AcrossOriginSettler.
+
+    ```ts title="submit-intent.ts"
+    import { parseAbi } from "viem";
+
+    const openHash = await walletClient.writeContract({
+      address: ORIGIN_SETTLER_BASE,
+      abi: parseAbi([
+        "function open(uint256 fillDeadline, bytes32 orderDataType, bytes orderData)",
+      ]),
+      functionName: "open",
+      args: [BigInt(fillDeadline), orderDataType, orderData],
+    });
+
+    console.log("Intent submitted:", openHash);
+
+    const receipt = await publicClient.waitForTransactionReceipt({
+      hash: openHash,
+    });
+
+    console.log("Confirmed in block:", receipt.blockNumber);
+    ```
+  </Step>
+  <Step>
+    ### Track the Fill
+
+    Use the `/deposit/status` endpoint to verify the intent was filled on the destination chain. See [Tracking Deposits](/docs/introduction/tracking-deposits) for details.
+  </Step>
+</Steps>
+
+<Callout type="info">
+  ERC-7683 is ideal when you want **direct on-chain composability** — calling `open()` from another smart contract, building custom settlement flows, or integrating with account abstraction. For most server-side or frontend integrations, the [Swap API](/docs/introduction/swap-api) is simpler since it handles encoding, gas estimation, and approval transactions for you.
+</Callout>

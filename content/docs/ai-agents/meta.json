@@ -1,0 +1,6 @@
+{
+  "title": "AI Agents",
+  "root": true,
+  "icon": "Bot",
+  "pages": ["index", "llms-txt", "agents-md", "prompt-library", "agent-examples"]
+}

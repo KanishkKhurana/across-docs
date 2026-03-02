@@ -1,0 +1,470 @@
+---
+title: "Integrate Across Swap API"
+description: Build a complete crosschain USDC bridge from scratch — discover chains, look up tokens, get a quote, and execute with viem.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+In this guide you'll build a complete crosschain bridge that sends **1 USDC from Arbitrum to Base** using the Across Swap API and viem. We'll start from zero — discovering supported chains, looking up token addresses, fetching a quote, and executing the transaction.
+
+## Prerequisites
+
+- Node.js 20+
+- A wallet with at least 2 USDC on Arbitrum (1 USDC to bridge + gas)
+- An Arbitrum RPC URL (the public `https://arb1.arbitrum.io/rpc` works for testing)
+
+Install dependencies:
+
+```bash title="terminal"
+npm init -y
+npm install viem
+```
+
+Create a single file for the integration:
+
+```bash title="terminal"
+touch bridge.ts
+```
+
+## The Plan
+
+We'll go through five steps, each calling one API endpoint and building on the previous result:
+
+1. **Discover chains** — call `/swap/chains` to confirm Arbitrum and Base are supported
+2. **Look up tokens** — call `/swap/tokens` to find the USDC addresses on both chains
+3. **Get a quote** — call `/swap/approval` with the token addresses and amount
+4. **Execute approvals** — send any required token approval transactions
+5. **Execute the bridge** — send the swap transaction and track the result
+
+Let's build it.
+
+---
+
+<Steps>
+  <Step>
+    ### Step 1 — Discover Supported Chains
+
+    The `/swap/chains` endpoint returns every chain Across supports, with its chain ID, name, and public RPC URL.
+
+    ```ts title="bridge.ts"
+    const BASE_URL = "https://app.across.to/api";
+
+    // Step 1: Discover chains
+    async function getChains() {
+      const res = await fetch(`${BASE_URL}/swap/chains`);
+      const chains = await res.json();
+      return chains;
+    }
+    ```
+
+    The response is an array of chain objects:
+
+    ```json title="sample response (abbreviated)"
+    [
+      {
+        "chainId": 42161,
+        "name": "Arbitrum",
+        "publicRpcUrl": "https://arb1.arbitrum.io/rpc",
+        "explorerUrl": "https://arbiscan.io"
+      },
+      {
+        "chainId": 8453,
+        "name": "Base",
+        "publicRpcUrl": "https://mainnet.base.org",
+        "explorerUrl": "https://basescan.org"
+      }
+    ]
+    ```
+
+    We can use this to find our origin and destination chains programmatically:
+
+    ```ts title="bridge.ts"
+    async function findChain(chains: any[], name: string) {
+      const chain = chains.find(
+        (c: any) => c.name.toLowerCase() === name.toLowerCase()
+      );
+      if (!chain) throw new Error(`Chain "${name}" not found`);
+      return chain;
+    }
+    ```
+
+    <Callout type="info">
+      In a real integration, you'd cache the chain list and present it as a dropdown for users to select their origin and destination chains.
+    </Callout>
+  </Step>
+
+  <Step>
+    ### Step 2 — Look Up Token Addresses
+
+    The `/swap/tokens` endpoint returns all supported tokens for a given chain, including their contract addresses and decimal counts.
+
+    ```ts title="bridge.ts"
+    // Step 2: Look up tokens on a specific chain
+    async function getTokens(chainId: number) {
+      const res = await fetch(`${BASE_URL}/swap/tokens?chainId=${chainId}`);
+      const tokens = await res.json();
+      return tokens;
+    }
+    ```
+
+    The response is an array of token objects:
+
+    ```json title="sample response (abbreviated)"
+    [
+      {
+        "chainId": 42161,
+        "address": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
+        "name": "USD Coin",
+        "symbol": "USDC",
+        "decimals": 6,
+        "priceUsd": "0.999903"
+      },
+      {
+        "chainId": 42161,
+        "address": "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1",
+        "name": "Wrapped Ether",
+        "symbol": "WETH",
+        "decimals": 18,
+        "priceUsd": "1937.75"
+      }
+    ]
+    ```
+
+    Find USDC on both chains:
+
+    ```ts title="bridge.ts"
+    function findToken(tokens: any[], symbol: string) {
+      const token = tokens.find(
+        (t: any) => t.symbol.toUpperCase() === symbol.toUpperCase()
+      );
+      if (!token) throw new Error(`Token "${symbol}" not found`);
+      return token;
+    }
+    ```
+
+    <Callout type="warn">
+      **Always use the addresses from the API response** — don't hardcode token addresses. Token addresses differ between chains (USDC on Arbitrum is `0xaf88d065e77c8cC2239327C5EDb3A432268e5831`, but on Base it's `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913`). The API is the source of truth.
+    </Callout>
+  </Step>
+
+  <Step>
+    ### Step 3 — Get a Quote
+
+    Now we have everything needed to call `/swap/approval`. This endpoint returns executable calldata for the crosschain transfer — approval transactions, the main swap transaction, expected fees, and fill time.
+
+    ```ts title="bridge.ts"
+    import { parseUnits } from "viem";
+
+    // Step 3: Get a quote from the Swap API
+    async function getQuote(params: {
+      originChainId: number;
+      destinationChainId: number;
+      inputToken: string;
+      outputToken: string;
+      amount: string;
+      depositor: string;
+    }) {
+      const searchParams = new URLSearchParams({
+        tradeType: "minOutput",
+        originChainId: params.originChainId.toString(),
+        destinationChainId: params.destinationChainId.toString(),
+        inputToken: params.inputToken,
+        outputToken: params.outputToken,
+        amount: params.amount,
+        depositor: params.depositor,
+      });
+
+      const res = await fetch(
+        `${BASE_URL}/swap/approval?${searchParams}`
+      );
+      const quote = await res.json();
+
+      if (!quote.swapTx) {
+        throw new Error(`Quote failed: ${JSON.stringify(quote)}`);
+      }
+
+      return quote;
+    }
+    ```
+
+    **What the response tells you:**
+
+    | Field | What It Means |
+    |-------|---------------|
+    | `checks.allowance` | Whether the depositor has approved enough tokens for the SpokePool to spend |
+    | `checks.balance` | Whether the depositor has enough tokens |
+    | `approvalTxns` | Array of approval transactions to execute first (may be empty if already approved) |
+    | `swapTx` | The main bridge transaction — `to`, `data`, `value`, `gas` |
+    | `expectedFillTime` | Estimated seconds until the relayer fills on the destination (~2 seconds on mainnet) |
+    | `fees` | Total fees, including origin gas |
+
+    <Callout type="info">
+      We use `tradeType: "minOutput"` which means "I want to receive **at least** this amount on the destination." The API calculates the required input. This is the recommended default for most integrations.
+    </Callout>
+  </Step>
+
+  <Step>
+    ### Step 4 — Execute Approvals
+
+    Before sending the bridge transaction, we need to approve the SpokePool contract to spend our USDC. The quote tells us exactly which approval transactions to send.
+
+    ```ts title="bridge.ts"
+    import {
+      createWalletClient,
+      createPublicClient,
+      http,
+    } from "viem";
+    import { arbitrum } from "viem/chains";
+    import { privateKeyToAccount } from "viem/accounts";
+
+    // Step 4: Execute approval transactions
+    async function executeApprovals(
+      quote: any,
+      walletClient: any,
+      publicClient: any
+    ) {
+      if (!quote.approvalTxns?.length) {
+        console.log("No approvals needed — already approved");
+        return;
+      }
+
+      console.log(`Executing ${quote.approvalTxns.length} approval(s)...`);
+
+      for (const approvalTx of quote.approvalTxns) {
+        const hash = await walletClient.sendTransaction({
+          to: approvalTx.to as `0x${string}`,
+          data: approvalTx.data as `0x${string}`,
+        });
+
+        console.log(`  Approval tx sent: ${hash}`);
+
+        const receipt = await publicClient.waitForTransactionReceipt({ hash });
+        console.log(`  Confirmed in block ${receipt.blockNumber}`);
+      }
+    }
+    ```
+
+    <Callout type="info">
+      Approvals only need to happen once per token/spender pair. On subsequent bridges with the same token, `approvalTxns` will be an empty array and this step is skipped automatically.
+    </Callout>
+  </Step>
+
+  <Step>
+    ### Step 5 — Execute the Bridge
+
+    Finally, send the main swap transaction. This deposits your USDC into the origin SpokePool, and a relayer will deliver USDC on Base in ~2 seconds.
+
+    ```ts title="bridge.ts"
+    // Step 5: Execute the bridge transaction
+    async function executeBridge(
+      quote: any,
+      walletClient: any,
+      publicClient: any
+    ) {
+      console.log("Sending bridge transaction...");
+      console.log(`  Expected fill time: ${quote.expectedFillTime}s`);
+
+      const hash = await walletClient.sendTransaction({
+        to: quote.swapTx.to as `0x${string}`,
+        data: quote.swapTx.data as `0x${string}`,
+        value: quote.swapTx.value ? BigInt(quote.swapTx.value) : 0n,
+        gas: quote.swapTx.gas ? BigInt(quote.swapTx.gas) : undefined,
+      });
+
+      console.log(`  Bridge tx sent: ${hash}`);
+
+      const receipt = await publicClient.waitForTransactionReceipt({ hash });
+      console.log(`  Confirmed in block ${receipt.blockNumber}`);
+
+      return hash;
+    }
+    ```
+  </Step>
+</Steps>
+
+## Putting It All Together
+
+Here's the complete script that chains all five steps:
+
+```ts title="bridge.ts"
+import {
+  createWalletClient,
+  createPublicClient,
+  http,
+  parseUnits,
+} from "viem";
+import { arbitrum } from "viem/chains";
+import { privateKeyToAccount } from "viem/accounts";
+
+const BASE_URL = "https://app.across.to/api";
+
+// ── Helpers ──────────────────────────────────────────────
+
+async function getChains() {
+  const res = await fetch(`${BASE_URL}/swap/chains`);
+  return res.json();
+}
+
+async function getTokens(chainId: number) {
+  const res = await fetch(`${BASE_URL}/swap/tokens?chainId=${chainId}`);
+  return res.json();
+}
+
+function findChain(chains: any[], name: string) {
+  const chain = chains.find(
+    (c: any) => c.name.toLowerCase() === name.toLowerCase()
+  );
+  if (!chain) throw new Error(`Chain "${name}" not found`);
+  return chain;
+}
+
+function findToken(tokens: any[], symbol: string) {
+  const token = tokens.find(
+    (t: any) => t.symbol.toUpperCase() === symbol.toUpperCase()
+  );
+  if (!token) throw new Error(`Token "${symbol}" not found`);
+  return token;
+}
+
+// ── Main ─────────────────────────────────────────────────
+
+async function main() {
+  // Setup wallet
+  const account = privateKeyToAccount(
+    process.env.PRIVATE_KEY as `0x${string}`
+  );
+  const walletClient = createWalletClient({
+    account,
+    chain: arbitrum,
+    transport: http(),
+  });
+  const publicClient = createPublicClient({
+    chain: arbitrum,
+    transport: http(),
+  });
+
+  console.log(`Wallet: ${account.address}\n`);
+
+  // ── Step 1: Discover chains ──────────────────────────
+  console.log("Step 1: Discovering chains...");
+  const chains = await getChains();
+  const origin = findChain(chains, "Arbitrum");
+  const destination = findChain(chains, "Base");
+  console.log(`  Origin:      ${origin.name} (${origin.chainId})`);
+  console.log(`  Destination: ${destination.name} (${destination.chainId})\n`);
+
+  // ── Step 2: Look up tokens ───────────────────────────
+  console.log("Step 2: Looking up USDC on both chains...");
+  const originTokens = await getTokens(origin.chainId);
+  const destTokens = await getTokens(destination.chainId);
+  const inputToken = findToken(originTokens, "USDC");
+  const outputToken = findToken(destTokens, "USDC");
+  console.log(`  Input:  ${inputToken.symbol} (${inputToken.address}) — ${inputToken.decimals} decimals`);
+  console.log(`  Output: ${outputToken.symbol} (${outputToken.address}) — ${outputToken.decimals} decimals\n`);
+
+  // ── Step 3: Get a quote ──────────────────────────────
+  console.log("Step 3: Fetching quote for 1 USDC...");
+  const amount = parseUnits("1", inputToken.decimals).toString();
+
+  const searchParams = new URLSearchParams({
+    tradeType: "minOutput",
+    originChainId: origin.chainId.toString(),
+    destinationChainId: destination.chainId.toString(),
+    inputToken: inputToken.address,
+    outputToken: outputToken.address,
+    amount,
+    depositor: account.address,
+  });
+
+  const quoteRes = await fetch(`${BASE_URL}/swap/approval?${searchParams}`);
+  const quote = await quoteRes.json();
+
+  if (!quote.swapTx) {
+    throw new Error(`Quote failed: ${JSON.stringify(quote, null, 2)}`);
+  }
+
+  console.log(`  Cross-swap type:   ${quote.crossSwapType}`);
+  console.log(`  Expected fill:     ${quote.expectedFillTime}s`);
+  console.log(`  Approvals needed:  ${quote.approvalTxns?.length ?? 0}`);
+  console.log(`  Simulation passed: ${quote.swapTx.simulationSuccess}\n`);
+
+  // ── Step 4: Execute approvals ────────────────────────
+  if (quote.approvalTxns?.length) {
+    console.log("Step 4: Executing approvals...");
+    for (const approvalTx of quote.approvalTxns) {
+      const hash = await walletClient.sendTransaction({
+        to: approvalTx.to as `0x${string}`,
+        data: approvalTx.data as `0x${string}`,
+      });
+      console.log(`  Approval tx: ${hash}`);
+      await publicClient.waitForTransactionReceipt({ hash });
+      console.log(`  Confirmed.`);
+    }
+    console.log();
+  } else {
+    console.log("Step 4: No approvals needed — skipping.\n");
+  }
+
+  // ── Step 5: Execute bridge ───────────────────────────
+  console.log("Step 5: Sending bridge transaction...");
+  const hash = await walletClient.sendTransaction({
+    to: quote.swapTx.to as `0x${string}`,
+    data: quote.swapTx.data as `0x${string}`,
+    value: quote.swapTx.value ? BigInt(quote.swapTx.value) : 0n,
+    gas: quote.swapTx.gas ? BigInt(quote.swapTx.gas) : undefined,
+  });
+  console.log(`  Bridge tx: ${hash}`);
+
+  const receipt = await publicClient.waitForTransactionReceipt({ hash });
+  console.log(`  Confirmed in block ${receipt.blockNumber}`);
+  console.log(`\n  View on Arbiscan: ${origin.explorerUrl}/tx/${hash}`);
+  console.log(`  Your USDC will arrive on Base in ~${quote.expectedFillTime} seconds.`);
+}
+
+main().catch(console.error);
+```
+
+## Running It
+
+```bash title="terminal"
+PRIVATE_KEY=0xYOUR_PRIVATE_KEY npx tsx bridge.ts
+```
+
+You should see output like:
+
+```
+Wallet: 0xYourAddress
+
+Step 1: Discovering chains...
+  Origin:      Arbitrum (42161)
+  Destination: Base (8453)
+
+Step 2: Looking up USDC on both chains...
+  Input:  USDC (0xaf88d065e77c8cC2239327C5EDb3A432268e5831) — 6 decimals
+  Output: USDC (0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913) — 6 decimals
+
+Step 3: Fetching quote for 1 USDC...
+  Cross-swap type:   bridgeableToBridgeable
+  Expected fill:     2s
+  Approvals needed:  1
+  Simulation passed: true
+
+Step 4: Executing approvals...
+  Approval tx: 0xabc123...
+  Confirmed.
+
+Step 5: Sending bridge transaction...
+  Bridge tx: 0xdef456...
+  Confirmed in block 284719304
+
+  View on Arbiscan: https://arbiscan.io/tx/0xdef456...
+  Your USDC will arrive on Base in ~2 seconds.
+```
+
+## Next Steps
+
+- **Track the deposit** — poll `/deposit/status` to confirm the fill. See [Tracking Deposits](/docs/introduction/tracking-deposits).
+- **Add an integrator ID** — required for production. See the [Swap API reference](/docs/introduction/swap-api#integrator-id).
+- **Handle errors** — check `quote.swapTx.simulationSuccess` before sending, and handle `checks.balance` to show a "not enough funds" message.
+- **Add embedded actions** — execute operations on the destination chain after the bridge. See [Crosschain Deposit into Aave](/docs/guides/dev-guides/crosschain-aave-deposit).

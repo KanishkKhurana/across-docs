@@ -1,0 +1,139 @@
+---
+title: Add Liquidity to Across HubPool
+description: Swap to ETH and add liquidity to the Across HubPool in one crosschain transaction.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+This example swaps tokens crosschain to ETH, then adds that ETH as liquidity to the Across HubPool — all in a single transaction. It demonstrates using `populateDynamically: true` with native ETH balance, where the same balance serves as both a function parameter and the transaction's `msg.value`.
+
+## Action Configuration
+
+```json title="action.json"
+{
+  "actions": [
+    {
+      "target": "0xc186fA914353c44b2E33eBE05f21846F1048bEda",
+      "functionSignature": "function addLiquidity(address l1Token, uint256 l1TokenAmount)",
+      "args": [
+        {
+          "value": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+          "populateDynamically": false
+        },
+        {
+          "value": "0",
+          "populateDynamically": true,
+          "balanceSourceToken": "0x0000000000000000000000000000000000000000"
+        }
+      ],
+      "value": "0",
+      "isNativeTransfer": false,
+      "populateCallValueDynamically": true
+    }
+  ]
+}
+```
+
+### How It Works
+
+- **`target`** — The Across HubPool contract on Ethereum (`0xc186fA914353c44b2E33eBE05f21846F1048bEda`)
+- **`functionSignature`** — `addLiquidity(address l1Token, uint256 l1TokenAmount)`
+- **First arg (l1Token)** — WETH address on Ethereum, static
+- **Second arg (l1TokenAmount)** — Dynamically populated from the native ETH balance. `balanceSourceToken` is set to the zero address, which references native ETH
+- **`populateCallValueDynamically: true`** — Forwards the entire ETH balance as `msg.value`
+
+<Callout type="info">
+  When an argument is populated dynamically from the native ETH balance (`balanceSourceToken: "0x0000..."`), the transaction's `msg.value` is **automatically and implicitly** set to the same amount. This means both the function parameter and the call value use the same balance.
+</Callout>
+
+## Full Example
+
+```ts title="swap-and-add-liquidity.ts"
+import { createWalletClient, createPublicClient, http, parseUnits } from "viem";
+import { arbitrum } from "viem/chains";
+import { privateKeyToAccount } from "viem/accounts";
+
+const account = privateKeyToAccount("0xYOUR_PRIVATE_KEY");
+
+const walletClient = createWalletClient({
+  account,
+  chain: arbitrum,
+  transport: http(),
+});
+
+const publicClient = createPublicClient({
+  chain: arbitrum,
+  transport: http(),
+});
+
+const MULTICALL_HANDLER_ETH = "0x924a9f036260DdD5808007E1AA95f08eD08aA569";
+const HUBPOOL = "0xc186fA914353c44b2E33eBE05f21846F1048bEda";
+const WETH = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
+
+async function swapAndAddLiquidity() {
+  const params = new URLSearchParams({
+    tradeType: "exactInput",
+    originChainId: "42161",                // Arbitrum
+    destinationChainId: "1",               // Ethereum
+    inputToken: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",  // USDC on Arbitrum
+    outputToken: WETH,
+    amount: parseUnits("1000", 6).toString(),
+    depositor: account.address,
+    recipient: MULTICALL_HANDLER_ETH,
+  });
+
+  const response = await fetch(
+    `https://app.across.to/api/swap/approval?${params}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        actions: [
+          {
+            target: HUBPOOL,
+            functionSignature:
+              "function addLiquidity(address l1Token, uint256 l1TokenAmount)",
+            args: [
+              {
+                value: WETH,
+                populateDynamically: false,
+              },
+              {
+                value: "0",
+                populateDynamically: true,
+                balanceSourceToken:
+                  "0x0000000000000000000000000000000000000000",
+              },
+            ],
+            value: "0",
+            isNativeTransfer: false,
+            populateCallValueDynamically: true,
+          },
+        ],
+      }),
+    }
+  );
+
+  const quote = await response.json();
+
+  if (quote.approvalTxns?.length) {
+    for (const approvalTx of quote.approvalTxns) {
+      const hash = await walletClient.sendTransaction({
+        to: approvalTx.to,
+        data: approvalTx.data,
+      });
+      await publicClient.waitForTransactionReceipt({ hash });
+    }
+  }
+
+  const hash = await walletClient.sendTransaction({
+    to: quote.swapTx.to,
+    data: quote.swapTx.data,
+    value: quote.swapTx.value ? BigInt(quote.swapTx.value) : 0n,
+  });
+
+  console.log("Swap + HubPool liquidity tx:", hash);
+}
+
+swapAndAddLiquidity();
+```

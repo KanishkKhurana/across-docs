@@ -1,0 +1,166 @@
+---
+title: Migration from V2 to V3
+description: Upgrade from Across V2 to V3 — new events, functions, fee structure, and contract changes.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
+
+Across V3 introduces crosschain token swaps, a simplified contract interface, and a restructured fee model. This guide covers all breaking changes for composable bridging, events, relayers, and dApp developers.
+
+## Summary of Changes
+
+| Component | V2 | V3 |
+|-----------|----|----|
+| **Composable callback** | `handleAcrossMessage()` | `handleV3AcrossMessage()` |
+| **Deposit event** | `FundsDeposited` | `V3FundsDeposited` |
+| **Fill event** | `FilledRelay` | `FilledV3Relay` |
+| **Relayer fill function** | N/A | `fillV3Relay()` |
+| **Speed-up function** | `speedUpDeposit()` | `speedUpV3Deposit()` |
+| **Partial fills** | Supported | Not supported |
+| **LP fee in fill** | Required from relayer | Calculated at refund time |
+| **Fee API structure** | Flat fields | Nested objects |
+
+## API Changes
+
+### Host Update
+
+Migrate from `across.to/api` to `app.across.to/api`. The original endpoint will be sunset.
+
+### Fee Structure
+
+<Tabs items={["V2 (Deprecated)", "V3 (Current)"]}>
+  <Tab value="V2 (Deprecated)">
+    V2 used flat fee fields:
+    ```
+    capitalFeePct + relayGasFeePct = relayFeePct
+    lpFeePct (separate)
+    totalBridgeFee = relayFeePct + lpFeePct
+    ```
+
+    These fields (`capitalFeePct`, `capitalFeeTotal`, `relayGasFeePct`, `relayGasFeeTotal`, `lpFeePct`) will be removed.
+  </Tab>
+  <Tab value="V3 (Current)">
+    V3 uses structured fee objects:
+    ```json
+    {
+      "totalRelayFee": { "pct": "...", "total": "..." },
+      "relayerCapitalFee": { "pct": "...", "total": "..." },
+      "relayerGasFee": { "pct": "...", "total": "..." },
+      "lpFee": { "pct": "...", "total": "..." }
+    }
+    ```
+
+    The `relayFeePct` field now includes `lpFeePct`. The standalone `lpFeePct` returns `"0"`.
+  </Tab>
+</Tabs>
+
+## Smart Contract Changes
+
+### Composable Bridging
+
+Recipient contracts must replace `handleAcrossMessage` with `handleV3AcrossMessage`:
+
+```solidity title="V3 callback"
+function handleV3AcrossMessage(
+    address tokenSent,
+    uint256 amount,
+    address relayer,
+    bytes memory message
+) external;
+```
+
+The `bool fillCompleted` parameter is removed — partial fills are no longer possible in V3.
+
+<Callout type="info">
+  During the transition, implement support for **both** function signatures. Deprecate `handleAcrossMessage()` after the migration is complete.
+</Callout>
+
+### Deposit Function
+
+<Tabs items={["V3 (Current)", "V2 (Deprecated)"]}>
+  <Tab value="V3 (Current)">
+    ```solidity title="depositV3"
+    function depositV3(
+        address depositor,
+        address recipient,
+        address inputToken,
+        address outputToken,
+        uint256 inputAmount,
+        uint256 outputAmount,
+        uint256 destinationChainId,
+        address exclusiveRelayer,
+        uint32 quoteTimestamp,
+        uint32 fillDeadline,
+        uint32 exclusivityDeadline,
+        bytes calldata message
+    ) external payable;
+    ```
+
+    **Default values for basic usage:**
+    - `fillDeadline`: `MAX_UINT` (no expiration)
+    - `outputToken`: `0x0` (equivalent token on destination)
+    - `exclusivityDeadline`: `0`
+    - `exclusiveRelayer`: `0x0`
+    - `outputAmount`: `inputAmount * (1 - totalRelayFeePct)`
+  </Tab>
+  <Tab value="V2 (Deprecated)">
+    ```solidity title="deposit (deprecated)"
+    function deposit(
+        address recipient,
+        address originToken,
+        uint256 amount,
+        uint256 destinationChainId,
+        int64 relayerFeePct,
+        uint32 quoteTimestamp,
+        bytes memory message,
+        uint256 maxCount
+    ) external payable;
+    ```
+  </Tab>
+</Tabs>
+
+### Speed-Up Function
+
+V3 changes from fee-based to output-amount-based speed-ups:
+
+```solidity title="speedUpV3Deposit"
+function speedUpV3Deposit(
+    address depositor,
+    uint32 depositId,
+    uint256 updatedOutputAmount,
+    address updatedRecipient,
+    bytes calldata updatedMessage,
+    bytes calldata depositorSignature
+) external;
+```
+
+All three mutable fields (output amount, recipient, message) can be modified in one transaction. Requires the depositor's signature.
+
+## Event Changes
+
+### Deposit Events
+
+The `V3FundsDeposited` event replaces `FundsDeposited`. Key additions: `outputToken`, `outputAmount`, `fillDeadline`, `exclusivityDeadline`, `exclusiveRelayer`.
+
+### Fill Events
+
+The `FilledV3Relay` event replaces `FilledRelay`. Key additions: `repaymentChainId` at the event level, `V3RelayExecutionEventInfo` struct with `fillType` enum (`FastFill`, `ReplacedSlowFill`, `SlowFill`).
+
+**V3 matching rules:** Events must match on all common parameters except `outputToken`. If the deposit specifies `outputToken = 0x0`, the fill must use the "equivalent" token on the destination chain.
+
+## Relayer Changes
+
+All V3 deposits are filled exclusively via `fillV3Relay()`:
+
+```solidity title="fillV3Relay"
+function fillV3Relay(
+    V3RelayData calldata relayData,
+    uint256 repaymentChainId
+)
+```
+
+Key differences from V2:
+- **LP fee**: Relayers no longer set `realizedLpFeePct` — LP fees are calculated at refund time using UMIP formulas
+- **Output token**: When `V3FundsDeposited.outputToken == 0x0`, the relayer must substitute the equivalent token on the destination chain
+- **No partial fills**: Each intent is filled completely or not at all

@@ -1,0 +1,6 @@
+{
+  "title": "Introduction",
+  "root": true,
+  "icon": "BookOpen",
+  "pages": ["index", "stablecoins", "swap-api", "hypercore", "tracking-deposits", "refunds", "embedded-actions", "erc-7683", "fees", "actors", "security"]
+}

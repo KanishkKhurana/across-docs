@@ -1,0 +1,250 @@
+---
+title: Agent Workflows
+description: End-to-end examples showing real AI agent sessions performing crosschain tasks with the Across Protocol.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+Walk through complete agent workflows — from the user's prompt to the final result. Each example shows every step the agent takes, the API calls it makes, and the data it works with.
+
+## Example 1: Bridge USDC Across Chains
+
+**User prompt:**
+```
+Bridge 100 USDC from Arbitrum to Base
+```
+
+<Steps>
+  <Step>
+    ### Discover supported chains
+
+    The agent calls the chains endpoint to confirm Arbitrum and Base are supported and to get their chain IDs.
+
+    ```bash
+    GET https://app.across.to/api/swap/chains
+    ```
+
+    The agent finds:
+    - **Arbitrum** — chain ID `42161`
+    - **Base** — chain ID `8453`
+  </Step>
+
+  <Step>
+    ### Look up token addresses
+
+    The agent fetches the token list for both chains to find the USDC contract addresses.
+
+    ```bash
+    GET https://app.across.to/api/swap/tokens?chainId=42161
+    GET https://app.across.to/api/swap/tokens?chainId=8453
+    ```
+
+    The agent finds:
+    - USDC on Arbitrum: `0xaf88d065e77c8cC2239327C5EDb3A432268e5831` (6 decimals)
+    - USDC on Base: `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913` (6 decimals)
+  </Step>
+
+  <Step>
+    ### Get a quote
+
+    The agent formats the amount (100 USDC = `100000000` with 6 decimals) and requests a quote.
+
+    ```bash
+    GET https://app.across.to/api/swap/approval
+      ?originChainId=42161
+      &destinationChainId=8453
+      &inputToken=0xaf88d065e77c8cC2239327C5EDb3A432268e5831
+      &outputToken=0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913
+      &amount=100000000
+      &depositor=0xUserWallet
+      &tradeType=minOutput
+    ```
+
+    The response includes:
+    - `expectedFillTime`: **2 seconds**
+    - `simulationSuccess`: **true**
+    - `approvalTxns`: 1 approval needed (first time only)
+    - `swapTx`: the bridge transaction calldata
+  </Step>
+
+  <Step>
+    ### Execute token approval
+
+    The quote includes an approval transaction because this is the first time bridging USDC through this SpokePool. The agent sends it.
+
+    ```
+    Transaction: Approve SpokePool to spend USDC
+    Hash: 0xabc123...
+    Status: Confirmed
+    ```
+
+    On subsequent bridges, this step is skipped — the approval persists.
+  </Step>
+
+  <Step>
+    ### Execute the bridge
+
+    The agent sends the main swap transaction using the calldata from the quote.
+
+    ```
+    Transaction: Deposit 100 USDC into Arbitrum SpokePool
+    Hash: 0xdef456...
+    Status: Confirmed in block 284719304
+    ```
+
+    The agent reports back:
+    > Bridged 100 USDC from Arbitrum to Base. Expected fill time: ~2 seconds.
+    > Tx: https://arbiscan.io/tx/0xdef456...
+  </Step>
+
+  <Step>
+    ### Track the deposit
+
+    The agent polls the status endpoint until the deposit is filled.
+
+    ```bash
+    GET https://app.across.to/api/deposit/status
+      ?originChainId=42161
+      &depositTxHash=0xdef456...
+    ```
+
+    After ~2 seconds:
+    ```json
+    {
+      "status": "filled",
+      "fillTxHash": "0x789abc...",
+      "destinationChainId": 8453
+    }
+    ```
+
+    The agent confirms: **Transfer complete.** 100 USDC arrived on Base.
+  </Step>
+</Steps>
+
+<Callout type="info">
+  **Try it yourself.** Give your agent this prompt:
+  ```
+  Bridge 100 USDC from Arbitrum to Base
+  ```
+  With the [Across skill installed](/docs/ai-agents), the agent handles the entire flow autonomously.
+</Callout>
+
+---
+
+## Example 2: Bridge + DeFi Deposit
+
+**User prompt:**
+```
+Bridge 100 USDC from Arbitrum to Ethereum, swap to ETH, and deposit into Aave
+```
+
+<Steps>
+  <Step>
+    ### Discover chains and tokens
+
+    The agent resolves chain IDs and token addresses, same as Example 1.
+
+    - **Arbitrum** (42161) — USDC: `0xaf88d065e77c8cC2239327C5EDb3A432268e5831`
+    - **Ethereum** (1) — WETH: `0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2`
+
+    The agent identifies this as a cross-token bridge (USDC to WETH) with an embedded action.
+  </Step>
+
+  <Step>
+    ### Build the embedded action
+
+    The agent constructs an Aave deposit action targeting the WETH Gateway on Ethereum.
+
+    ```json title="embedded action"
+    {
+      "target": "0x893411580e590D62dDBca8a703d61Cc4A8c7b2b9",
+      "functionSignature": "function depositETH(address, address onBehalfOf, uint16 referralCode)",
+      "args": [
+        { "value": "0x0000000000000000000000000000000000000000", "populateDynamically": false },
+        { "value": "0xUserWallet", "populateDynamically": false },
+        { "value": "0", "populateDynamically": false }
+      ],
+      "value": "0",
+      "isNativeTransfer": false,
+      "populateCallValueDynamically": true
+    }
+    ```
+
+    The key: `populateCallValueDynamically: true` tells the MulticallHandler to forward the entire ETH balance from the swap as `msg.value` to the Aave deposit.
+  </Step>
+
+  <Step>
+    ### Get a quote with actions
+
+    The agent uses `POST /swap/approval` with the actions array in the body and sets `recipient` to the MulticallHandler contract.
+
+    ```bash
+    POST https://app.across.to/api/swap/approval
+      ?originChainId=42161
+      &destinationChainId=1
+      &inputToken=0xaf88d065e77c8cC2239327C5EDb3A432268e5831
+      &outputToken=0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2
+      &amount=100000000
+      &depositor=0xUserWallet
+      &recipient=0x924a9f036260DdD5808007E1AA95f08eD08aA569
+      &tradeType=exactInput
+
+    Body: { "actions": [<embedded action>] }
+    ```
+
+    The response confirms `simulationSuccess: true` — the full flow (bridge + swap + Aave deposit) has been simulated successfully.
+  </Step>
+
+  <Step>
+    ### Execute approvals and bridge
+
+    The agent sends any required approval transactions, then the main swap transaction.
+
+    ```
+    Transaction: Deposit USDC into Arbitrum SpokePool (with embedded Aave action)
+    Hash: 0xfed987...
+    Status: Confirmed
+    ```
+
+    What happens next (handled by the protocol):
+    1. A relayer fills the intent on Ethereum, delivering ETH to the MulticallHandler
+    2. The MulticallHandler executes the Aave `depositETH()` call
+    3. Aave mints aWETH tokens to the user's address
+  </Step>
+
+  <Step>
+    ### Confirm the result
+
+    The agent tracks the deposit and confirms the full flow completed.
+
+    > Bridge + Aave deposit complete. 100 USDC on Arbitrum has been converted to an aWETH lending position on Ethereum.
+    > Deposit tx: https://arbiscan.io/tx/0xfed987...
+    > Expected fill: ~2 seconds.
+  </Step>
+</Steps>
+
+<Callout type="info">
+  **Try it yourself.** Give your agent this prompt:
+  ```
+  Bridge 100 USDC from Arbitrum to Ethereum, swap to ETH, and deposit into Aave
+  ```
+  This uses [embedded crosschain actions](/docs/introduction/embedded-actions) to compose bridge + DeFi in a single user transaction.
+</Callout>
+
+---
+
+## More Resources
+
+<Cards>
+  <Card title="Integrate Swap API" href="/docs/guides/dev-guides/integrate-swap-api">
+    Full developer guide for the 5-step bridge flow used in Example 1.
+  </Card>
+  <Card title="Crosschain Aave Deposit" href="/docs/guides/dev-guides/crosschain-aave-deposit">
+    Complete code walkthrough for the bridge + Aave pattern in Example 2.
+  </Card>
+  <Card title="Prompt Library" href="/docs/ai-agents/prompt-library">
+    More prompts organized by task category.
+  </Card>
+</Cards>

@@ -1,0 +1,56 @@
+---
+title: Testnet Environment
+description: Sepolia testnet deployment for testing the non-EVM migration changes.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+A testnet environment is available on Sepolia for testing the non-EVM migration changes. Two SpokePools are deployed with sample deposits and fills.
+
+<Callout type="warn">
+  **No bundles will be run on this test deployment.** All WETH you deposit will be permanently locked. This environment is for testing event indexing and fill logic only.
+</Callout>
+
+## SpokePool 1
+
+| Property | Value |
+|----------|-------|
+| **Address** | `0x1755DD08108095C48509F5C91e071e0cb62eb27a` |
+| **WETH Token** | `0x43f133FE6fDFA17c417695c476447dc2a449Ba5B` |
+| **Chain ID** | `11155111` |
+
+## SpokePool 2
+
+| Property | Value |
+|----------|-------|
+| **Address** | `0xeF89171DBD5DEe4D74842C62689EC0804aF5807B` |
+| **WETH Token** | `0x5b3acAADE6c53eFCD113dCa116F71312f2df666d` |
+| **Chain ID** | `11155112` |
+
+## Sample Transfers
+
+### SpokePool 1 → SpokePool 2
+
+| Transaction | Hash |
+|-------------|------|
+| **Deposit** | `0xf260507cbff7f46fa8fe5fa35c20d839393123a9a396b371c37ba48ff6364806` |
+| **Fill** | `0xb1294420167b4468ef1ec8aef8994678c92b0be01afb3dc5e37a5ab7d8978615` |
+
+### SpokePool 2 → SpokePool 1
+
+| Transaction | Hash |
+|-------------|------|
+| **Deposit** | `0x14c5b18b838387e4ea613ce95c0c43b4823cd62997cefad301264dc4b83ce0ba` |
+| **Fill** | `0x27474ba120315af04ce69c1296b9da3487972f4b5e40138add4e581c689fde6a` |
+
+## Creating Test Transfers
+
+You can create your own deposits and fills by:
+
+1. Minting WETH on either SpokePool using the WETH contract's `deposit()` function (send ETH to receive WETH)
+2. Calling the SpokePool deposit function with the minted WETH
+3. Filling the deposit on the other SpokePool
+
+<Callout type="info">
+  Contract artifacts are available at the [GitHub release v3.1.0-beta.4](https://github.com/across-protocol/contracts/releases).
+</Callout>

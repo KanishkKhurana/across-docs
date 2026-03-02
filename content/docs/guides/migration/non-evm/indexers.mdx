@@ -1,0 +1,54 @@
+---
+title: Breaking Changes for Indexers
+description: Updated SpokePool events for non-EVM address support — indexers must update or face system failures.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+Indexers of Across data must update to support the new event types. The recommendation is to consume **both old and new events** during migration to prevent timing issues — each SpokePool upgrades at different times.
+
+<Callout type="warn">
+  Effective **January 23, 2025**. Failing to update will cause indexer failures as SpokePools emit only the new events.
+</Callout>
+
+## Key Changes
+
+### Address Type Conversion
+
+All `address` types are converted to `bytes32` to accommodate longer address types from non-EVM chains (like Solana).
+
+### Deposit ID Expansion
+
+`depositId` changes from `uint32` to `uint256` to support larger identifier spaces.
+
+### Message Optimization
+
+`FilledRelay` and `RequestedSlowFill` events now contain only the `messageHash` instead of the full `message` to reduce gas costs.
+
+## Event Mapping
+
+| Deprecated Event | Replacement Event | Key Changes |
+|-----------------|-------------------|-------------|
+| `V3FundsDeposited` | `FundsDeposited` | `address` → `bytes32`; `depositId`: `uint32` → `uint256` |
+| `RequestedSpeedUpV3Deposit` | `RequestedSpeedUpDeposit` | `address` → `bytes32`; `depositId`: `uint32` → `uint256` |
+| `FilledV3Relay` | `FilledRelay` | `address` → `bytes32`; `message` → `messageHash`; `depositId`: `uint32` → `uint256` |
+| `RequestedV3SlowFill` | `RequestedSlowFill` | `address` → `bytes32`; `message` → `messageHash`; `depositId`: `uint32` → `uint256` |
+
+## Migration Strategy
+
+<Callout type="info">
+  Query **both** old and new event types during the transition period. Each SpokePool upgrades independently, but the protocol guarantees no single fill or deposit will emit duplicate events across old and new formats.
+</Callout>
+
+```ts title="dual-event-indexing.ts"
+// Index both old and new deposit events during migration
+const oldDepositEvent = parseAbiItem(
+  "event V3FundsDeposited(address inputToken, address outputToken, uint256 inputAmount, uint256 outputAmount, uint256 indexed destinationChainId, uint32 indexed depositId, uint32 quoteTimestamp, uint32 fillDeadline, uint32 exclusivityDeadline, address indexed depositor, address recipient, address exclusiveRelayer, bytes message)"
+);
+
+const newDepositEvent = parseAbiItem(
+  "event FundsDeposited(bytes32 inputToken, bytes32 outputToken, uint256 inputAmount, uint256 outputAmount, uint256 indexed destinationChainId, uint256 indexed depositId, uint32 quoteTimestamp, uint32 fillDeadline, uint32 exclusivityDeadline, bytes32 indexed depositor, bytes32 recipient, bytes32 exclusiveRelayer, bytes message)"
+);
+
+// Subscribe to both during the transition
+```

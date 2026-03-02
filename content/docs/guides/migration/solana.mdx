@@ -1,0 +1,97 @@
+---
+title: Solana Migration Guide
+description: Prepare for USDC bridging on Solana — API changes, deposit flow, and relayer requirements.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
+
+Across supports USDC bridging on Solana, connecting Ethereum Mainnet and other chains to Solana's ecosystem. This guide covers the API changes, deposit flow, and relayer updates required.
+
+<Callout type="warn">
+  **No testnet support for Solana.** Across does not support Solana devnet or testnet. You must test on Solana mainnet with small token amounts. The Across App-SDK does not yet support Solana.
+</Callout>
+
+## API Changes
+
+### `recipient` Parameter Required
+
+The `/suggested-fees` endpoint now **requires** the `recipient` parameter in Solana **Pubkey format** (base-58 encoded string) when the destination is Solana. Missing or invalid Solana public keys return a `400` error.
+
+```ts title="solana-quote.ts"
+const params = new URLSearchParams({
+  inputToken: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",  // USDC on Arbitrum
+  outputToken: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", // USDC on Solana
+  originChainId: "42161",
+  destinationChainId: "34268394551451",  // Solana chain ID
+  amount: "10000000",                     // 10 USDC
+  recipient: "YourSolanaPublicKeyBase58", // Required — Solana Pubkey format
+});
+
+const res = await fetch(
+  `https://app.across.to/api/suggested-fees?${params}`
+);
+```
+
+### Response Changes
+
+Response fields display Solana addresses where applicable (base-58 format instead of hex).
+
+### Transaction Size Limit
+
+Solana transactions have a **maximum size limit of 1,232 bytes**. This affects deposits with attached messages (embedded actions) from EVM to Solana. If you need large payloads, contact the Across team.
+
+## Deposit Flow
+
+<Steps>
+  <Step>
+    ### Fetch Quote
+
+    Call `/suggested-fees` with the Solana chain ID (`34268394551451`) as `destinationChainId` and include the `recipient` in Solana Pubkey format. Add your `integratorId`.
+  </Step>
+  <Step>
+    ### Call `deposit()` on SVM SpokePool
+
+    Use the deposit function on the SVM SpokePool contract. A [reference script](https://github.com/across-protocol/contracts/blob/master/scripts/svm/simpleDeposit.ts) demonstrates proper invocation with `integratorId`.
+  </Step>
+  <Step>
+    ### Track the Deposit
+
+    Use the `/deposit/status` endpoint to monitor the fill status.
+  </Step>
+</Steps>
+
+## Relayer Updates
+
+<Tabs items={["Package Dependencies", "Fill Changes", "Repayment Warning"]}>
+  <Tab value="Package Dependencies">
+    Relayers must update to the latest versions of:
+
+    - `@across-protocol/sdk`
+    - `@across-protocol/contracts`
+    - `@solana/kit` (replaces `@solana/web3.js@^2.0.0`)
+  </Tab>
+  <Tab value="Fill Changes">
+    For Solana transactions, relayers transition from `fillV3Relay` to `fillRelay`. Solana-specific fill functions are required, and relayers must monitor events via the `emit_cpi!()` method in Anchor.
+  </Tab>
+  <Tab value="Repayment Warning">
+    <Callout type="warn">
+      When filling to or from Solana, relayers **must always specify a valid address on the chain where they request repayment**. Failing to do so may result in **loss of funds**.
+    </Callout>
+  </Tab>
+</Tabs>
+
+## Key Details
+
+| Property | Value |
+|----------|-------|
+| **Solana Chain ID** | `34268394551451` |
+| **SVM SpokePool** | `DLv3NggMiSaef97YCkew5xKUHDh13tVGZ7tydt3ZeAru` |
+| **Supported tokens** | USDC |
+| **Testnet** | Not available — test on mainnet with small amounts |
+| **App-SDK** | Not yet supported for Solana |
+
+<Callout type="info">
+  Early Solana support positively affects relayer nomination percentages. If you're running a relayer, supporting Solana fills early can improve your standing.
+</Callout>

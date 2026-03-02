@@ -1,0 +1,122 @@
+---
+title: Fees in the System
+description: How LP fees, relayer fees, gas fees, and capital fees are calculated in Across.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+Every crosschain transfer through Across incurs fees that compensate the actors making the system work — liquidity providers and relayers. All fees are derived from the spread between the `inputAmount` (what the user deposits on the origin chain) and the `outputAmount` (what the user receives on the destination chain).
+
+## Fee Breakdown
+
+The total fee a user pays is the difference between their deposit and what they receive:
+
+```
+totalFee = inputAmount - outputAmount
+```
+
+This total fee is split between two components:
+
+| Fee Type | Recipient | Purpose |
+|----------|-----------|---------|
+| **LP Fee** | Liquidity providers | Compensates LPs for capital utilization and rebalancing risk |
+| **Relayer Fee** | Relayer who fills the intent | Covers gas costs, capital opportunity cost, and risk |
+
+Use the `/suggested-fees` endpoint to get a fee quote before executing a transfer. The response breaks down each component.
+
+## LP Fees
+
+Across uses a **utilization-based pricing model** adapted from lending protocols like Aave. LP fees depend on how much of the available liquidity pool is being used.
+
+### How It Works
+
+- When utilization is low, LP fees are minimal — plenty of capital is available
+- As utilization increases, fees rise along a curve to incentivize more LP deposits
+- Above a "kink" threshold, fees increase steeply to discourage draining the pool
+
+### Key Variables
+
+| Variable | Description |
+|----------|-------------|
+| **U** | Current pool utilization (0 to 1) |
+| **U-bar** | Kink utilization — threshold where the fee curve steepens |
+| **R0** | Base interest rate |
+| **R1** | Slope below kink |
+| **R2** | Slope above kink (steep) |
+
+The annualized rate formula follows an Aave-style two-slope model:
+
+```
+R(U) = R0 + (min(U-bar, U) / U-bar) * R1 + (max(0, U - U-bar) / (1 - U-bar)) * R2
+```
+
+Weekly rates are derived as `(1 + R_annual)^(1/52) - 1`, and the final LP fee is the weekly rate multiplied by the transaction size.
+
+<Callout type="info">
+  **When are LP fees zero?** If the relayer takes repayment on the origin chain (same chain as the deposit), no cross-chain rebalancing is needed, so LP fees are zero. Non-zero fees apply when repayment occurs on a different chain.
+</Callout>
+
+### Per-Route Parameters
+
+The rate parameters (R0, R1, R2, U-bar) vary by token and route. This means the LP fee for bridging USDC from Arbitrum to Base may differ from USDC from Ethereum to Optimism, reflecting different pool utilization levels.
+
+## Relayer Fees
+
+Relayers are compensated for three costs they incur when filling an intent:
+
+### 1. Gas Fees
+
+The cost of submitting the fill transaction on the destination chain. This varies by chain — filling on Ethereum L1 costs more gas than filling on Arbitrum or Base.
+
+### 2. Capital Opportunity Cost
+
+Relayers lock their own capital to fill intents immediately, then wait for reimbursement through the bundle settlement process (~1.5 hours). The fee compensates for the time value of that locked capital.
+
+### 3. Capital at Risk
+
+Relayers bear risk from:
+- **Software bugs** — implementation errors in relayer software
+- **Chain reorganizations** — finality risk where a filled transaction could be reverted
+- **Settlement delays** — longer-than-expected reimbursement periods
+
+## Querying Fees
+
+Use the `/suggested-fees` endpoint to get a full fee breakdown before executing a swap:
+
+```ts title="query-fees.ts"
+const params = new URLSearchParams({
+  inputToken: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",   // USDC on Arbitrum
+  outputToken: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",  // USDC on Base
+  originChainId: "42161",
+  destinationChainId: "8453",
+  amount: "1000000000",  // 1000 USDC
+});
+
+const res = await fetch(
+  `https://app.across.to/api/suggested-fees?${params}`
+);
+const fees = await res.json();
+
+console.log("Total relay fee:", fees.totalRelayFee.total);
+console.log("LP fee pct:", fees.lpFee.pct);              // 1e16 = 1%, 1e18 = 100%
+console.log("Relayer capital fee:", fees.relayerCapitalFee.total);
+console.log("Relayer gas fee:", fees.relayerGasFee.total);
+console.log("Expected fill time:", fees.expectedFillTimeSec, "seconds");
+console.log("Is amount too low?", fees.isAmountTooLow);
+```
+
+### Fee Response Fields
+
+| Field | Description |
+|-------|-------------|
+| `totalRelayFee` | Combined LP + relayer fee |
+| `lpFee` | LP fee component (pct format: 1e16 = 1%) |
+| `relayerCapitalFee` | Relayer capital opportunity cost |
+| `relayerGasFee` | Relayer destination gas cost |
+| `isAmountTooLow` | `true` if the amount is below the minimum for this route |
+| `expectedFillTimeSec` | Estimated time for a relayer to fill |
+| `limits` | Min/max deposit amounts for instant and short-delay fills |
+
+<Callout type="warn">
+  **Do not cache fee responses.** Fees change with market conditions, pool utilization, and gas prices. Always fetch fresh fees before presenting a quote to users.
+</Callout>

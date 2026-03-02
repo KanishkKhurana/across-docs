@@ -1,0 +1,140 @@
+---
+title: Machine-Readable Documentation
+description: Feed Across documentation directly to AI agents and RAG pipelines via llms.txt endpoints.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
+
+Every page on this site is available in machine-readable markdown format. AI agents, RAG pipelines, and LLM tools can consume Across documentation without scraping HTML.
+
+## Endpoints
+
+| Endpoint | Content | Best For |
+|----------|---------|----------|
+| `/llms.txt` | Page index with titles, URLs, and descriptions | Directory lookup — find the right page to read |
+| `/llms-full.txt` | All pages concatenated as markdown | RAG ingestion, large-context agents |
+| `/docs/<path>.mdx` | Single page as raw markdown | Targeted reads — fetch exactly one page |
+
+## When to Use Which
+
+- **Agent needs to find a page** — fetch `/llms.txt`, scan for the relevant title, then fetch that page's `.mdx` endpoint.
+- **Agent needs full context** — fetch `/llms-full.txt` and pass the entire corpus (or relevant chunks) into the context window.
+- **Agent already knows the page** — append `.mdx` to any docs URL to get raw markdown. For example, `/docs/ai-agents/llms-txt.mdx` returns this page as markdown.
+
+<Callout type="info">
+  The `/llms-full.txt` endpoint is large. If your agent has a limited context window, prefer `/llms.txt` to find the right page and then fetch it individually via `.mdx`.
+</Callout>
+
+## Fetching Examples
+
+### Page Index
+
+<Tabs items={["curl", "fetch", "Python"]}>
+  <Tab value="curl">
+    ```bash title="terminal"
+    curl https://docs.across.to/llms.txt
+    ```
+  </Tab>
+  <Tab value="fetch">
+    ```ts title="agent.ts"
+    const index = await fetch("https://docs.across.to/llms.txt").then(r => r.text());
+    console.log(index);
+    ```
+  </Tab>
+  <Tab value="Python">
+    ```python title="agent.py"
+    import requests
+
+    index = requests.get("https://docs.across.to/llms.txt").text
+    print(index)
+    ```
+  </Tab>
+</Tabs>
+
+### Full Documentation Dump
+
+<Tabs items={["curl", "fetch", "Python"]}>
+  <Tab value="curl">
+    ```bash title="terminal"
+    curl https://docs.across.to/llms-full.txt
+    ```
+  </Tab>
+  <Tab value="fetch">
+    ```ts title="agent.ts"
+    const full = await fetch("https://docs.across.to/llms-full.txt").then(r => r.text());
+    console.log(full);
+    ```
+  </Tab>
+  <Tab value="Python">
+    ```python title="agent.py"
+    import requests
+
+    full = requests.get("https://docs.across.to/llms-full.txt").text
+    print(full)
+    ```
+  </Tab>
+</Tabs>
+
+### Single Page
+
+<Tabs items={["curl", "fetch", "Python"]}>
+  <Tab value="curl">
+    ```bash title="terminal"
+    # Fetch the Swap API docs as markdown
+    curl https://docs.across.to/docs/introduction/swap-api.mdx
+    ```
+  </Tab>
+  <Tab value="fetch">
+    ```ts title="agent.ts"
+    const page = await fetch("https://docs.across.to/docs/introduction/swap-api.mdx")
+      .then(r => r.text());
+    console.log(page);
+    ```
+  </Tab>
+  <Tab value="Python">
+    ```python title="agent.py"
+    import requests
+
+    page = requests.get("https://docs.across.to/docs/introduction/swap-api.mdx").text
+    print(page)
+    ```
+  </Tab>
+</Tabs>
+
+## Per-Page Actions
+
+Every documentation page includes built-in buttons for AI consumption:
+
+- **Copy Markdown** — copies the page content as markdown to your clipboard
+- **Open in Claude / ChatGPT / Cursor** — opens the AI tool with the page URL pre-loaded as context
+
+These buttons appear at the top of each page and use the same `.mdx` endpoints described above.
+
+## For RAG Pipelines
+
+The `/llms-full.txt` endpoint concatenates all pages with `# Title` headings. You can split on H1 headings to chunk by page:
+
+```python title="chunker.py"
+import requests
+
+full_text = requests.get("https://docs.across.to/llms-full.txt").text
+
+# Split into per-page chunks
+chunks = []
+current_chunk = ""
+
+for line in full_text.split("\n"):
+    if line.startswith("# ") and current_chunk:
+        chunks.append(current_chunk.strip())
+        current_chunk = line + "\n"
+    else:
+        current_chunk += line + "\n"
+
+if current_chunk.strip():
+    chunks.append(current_chunk.strip())
+
+print(f"Split into {len(chunks)} page chunks")
+```
+
+Each chunk corresponds to one documentation page and can be embedded independently for retrieval.

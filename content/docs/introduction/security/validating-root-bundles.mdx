@@ -1,0 +1,100 @@
+---
+title: Validating Root Bundles
+description: How root bundles are validated and what the verification process checks.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+Root bundles instruct the Across system on how to transfer funds between smart contracts on different chains to refund relayers and fulfill user deposits. They are **optimistically validated** — proposed by the dataworker and accepted unless challenged — and ultimately secured by UMA's Oracle.
+
+## What Gets Validated
+
+A valid root bundle must correctly encode all activity that occurred across every supported chain during the covered block range. Validators check that the proposed merkle roots accurately represent:
+
+| Check | Description |
+|-------|-------------|
+| **Fill validity** | Every relayer fill included in the bundle corresponds to a real user deposit with matching parameters |
+| **Deposit matching** | Fills match deposits on input/output tokens, amounts, chains, and recipients |
+| **No double-counting** | Each fill is counted exactly once — no duplicate refunds |
+| **Block range correctness** | The claimed block ranges cover the right period on each chain |
+| **Rebalancing instructions** | Cross-chain token transfers correctly balance the SpokePools |
+| **Slow fill accuracy** | Unfilled deposits are correctly identified and included |
+| **Fee calculations** | LP fees and relayer repayment amounts are computed correctly per UMIP-157 / UMIP-179 |
+
+## How Validation Works
+
+<Steps>
+  <Step>
+    ### Read the Proposal
+
+    When a dataworker proposes a bundle to the HubPool, the proposal includes:
+    - Merkle roots for relayer refunds, rebalancing, and slow fills
+    - Block ranges for each chain
+    - The bond posted by the proposer
+  </Step>
+  <Step>
+    ### Reconstruct the Expected Bundle
+
+    An independent validator replays all on-chain events (deposits, fills) across every supported chain for the proposed block ranges. Using the same rules defined in UMIP-157 and UMIP-179, they reconstruct what the merkle roots **should** be.
+  </Step>
+  <Step>
+    ### Compare Roots
+
+    The validator compares their independently computed roots against the proposed roots. If they match, the proposal is valid. If they differ, it indicates an error or malicious proposal.
+  </Step>
+  <Step>
+    ### Dispute if Invalid
+
+    If the roots don't match, the validator files a dispute on the HubPool. See [Disputing Root Bundles](/docs/introduction/security/disputing-root-bundles) for the dispute process.
+  </Step>
+</Steps>
+
+## Running a Validator
+
+The Across dataworker software can run in **validation mode**, where it independently reconstructs bundles and compares them against proposals without submitting proposals itself.
+
+```bash title="run-validator"
+git clone https://github.com/across-protocol/relayer-v3.git
+cd relayer-v3
+yarn install && yarn build
+```
+
+Configure `.env` with RPC providers for all supported chains:
+
+```bash title=".env"
+SECRET=your_mnemonic_phrase_here
+RPC_PROVIDER_INFURA_1=your_eth_rpc
+RPC_PROVIDER_INFURA_42161=your_arb_rpc
+RPC_PROVIDER_INFURA_8453=your_base_rpc
+RPC_PROVIDER_INFURA_10=your_op_rpc
+# ... RPCs for all supported chains
+```
+
+<Callout type="info">
+  Validators need **archive RPC access** for all supported chains. Standard RPC endpoints may not support the historical queries needed to reconstruct bundles accurately.
+</Callout>
+
+## Rules Governing Bundle Construction
+
+The precise rules for what constitutes a valid bundle are defined in two UMA Improvement Proposals:
+
+### UMIP-157
+
+The original specification for Across V2 bundle construction, covering:
+- How block ranges are determined per chain
+- How fills are validated against deposits
+- How relayer refunds are calculated
+- How rebalancing instructions are generated
+- Merkle tree construction
+
+### UMIP-179
+
+An extension to UMIP-157 that adds:
+- Updated rules for Across V3 intent structure
+- Additional validation rules for new features (exclusivity, embedded actions)
+- Updated fee calculation logic
+
+<Callout type="info">
+  Anyone can validate bundles — the rules are public and the data is on-chain. The more independent validators monitoring proposals, the stronger the security guarantee. You only need **one honest validator** to catch an invalid proposal.
+</Callout>

@@ -1,0 +1,137 @@
+---
+title: AGENTS.md for Across Projects
+description: A ready-to-copy AGENTS.md template that gives coding agents full context on your Across integration.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+## What is AGENTS.md
+
+[AGENTS.md](https://agents.md/) is a convention for providing project context to AI coding agents. When an agent like Claude Code, Codex, or Cursor opens your repository, it reads the nearest `AGENTS.md` (or `CLAUDE.md`, `.cursorrules`, etc.) to understand the project's architecture, conventions, and integration patterns.
+
+## Why You Need One
+
+Without an `AGENTS.md`, coding agents have to guess how your Across integration works — which API endpoints you use, how you format amounts, where your bridge logic lives, and what security constraints to follow.
+
+With one, your agent can:
+
+- Call the correct Swap API endpoints without hallucinating URLs
+- Use your integrator ID and configured chains
+- Follow your project's conventions for error handling and token addresses
+- Avoid common mistakes like hardcoding addresses or logging private keys
+
+<Callout type="info">
+  Drop this file in your project root as `AGENTS.md`, `CLAUDE.md`, or `.cursorrules` — whichever your agent framework reads. The content is the same.
+</Callout>
+
+## The Template
+
+Copy this template into your repository and fill in the placeholders:
+
+````markdown title="AGENTS.md"
+# Project Context
+
+[YOUR PROJECT NAME] — [brief description of what the project does].
+Built with [framework/stack]. Uses Across Protocol for crosschain token transfers.
+
+# Across Integration
+
+- **Integrator ID**: `0xYOUR_INTEGRATOR_ID` (2-byte hex, register at https://app.across.to)
+- **API Base URL**: `https://app.across.to/api` (production)
+- **Testnet API**: `https://testnet.across.to/api` (Sepolia testnet)
+- **Supported Chains**: [list the chains your app supports, e.g., Ethereum, Arbitrum, Base, Optimism]
+- **Supported Tokens**: [list tokens, e.g., USDC, USDT, WETH, ETH]
+- **SDK**: `@across-protocol/app-sdk` (if using the SDK)
+
+# Build & Test
+
+```bash
+[your install command, e.g., pnpm install]
+[your build command, e.g., pnpm build]
+[your test command, e.g., pnpm test]
+[your dev command, e.g., pnpm dev]
+```
+
+# Key Files
+
+- `[path/to/bridge-logic]` — Main bridge integration (Swap API calls)
+- `[path/to/config]` — Chain and token configuration
+- `[path/to/hooks-or-utils]` — Bridge hooks/utilities
+- `[path/to/types]` — Type definitions for API responses
+
+# API Patterns
+
+All crosschain transfers go through the Swap API:
+
+1. **Discover chains**: `GET /swap/chains` — returns supported chains with IDs
+2. **Look up tokens**: `GET /swap/tokens?chainId={id}` — returns tokens for a chain
+3. **Get a quote**: `GET /swap/approval?originChainId=...&destinationChainId=...&inputToken=...&outputToken=...&amount=...&depositor=...&tradeType=minOutput`
+4. **Execute**: Send `approvalTxns` first (if any), then `swapTx`
+5. **Track**: `GET /deposit/status?originChainId=...&depositTxHash=...`
+
+For embedded actions (bridge + DeFi in one tx):
+- Use `POST /swap/approval` with `actions` array in the body
+- Set `recipient` to the MulticallHandler contract address
+
+# Conventions
+
+- NEVER hardcode token addresses — always fetch from `/swap/tokens`
+- NEVER hardcode chain IDs in logic — use `/swap/chains` as source of truth
+- Format amounts using the token's `decimals` field (USDC = 6, WETH = 18)
+- Use `tradeType: "minOutput"` for standard bridges (user receives at least the specified amount)
+- Use `tradeType: "exactInput"` for embedded actions (exact input, variable output)
+- Always include the integrator ID in production API calls
+
+# Security
+
+- NEVER log or expose private keys, seed phrases, or signing keys
+- NEVER commit `.env` files or credentials
+- Always check `simulationSuccess` on the quote before executing transactions
+- Validate `checks.allowance` and `checks.balance` before sending
+- Use the API-provided gas estimates — don't hardcode gas limits
+- For embedded actions, verify the `recipient` is the MulticallHandler, not the user address
+
+# Common Agent Tasks
+
+When asked to:
+- **"Bridge tokens"** — Use the 5-step Swap API flow: chains → tokens → quote → approve → execute
+- **"Get a quote"** — Call `/swap/approval` with the route parameters
+- **"Check bridge status"** — Call `/deposit/status` with the origin chain ID and deposit tx hash
+- **"Add a new chain"** — Check `/swap/chains` to verify support, then add chain config
+- **"Bridge and deposit into DeFi"** — Use embedded actions with POST `/swap/approval`
+````
+
+## Customization Guide
+
+<Steps>
+  <Step>
+    ### Fill in Project Context
+
+    Replace the placeholders in the first section with your project name, description, and tech stack. Be specific — agents use this to understand the overall architecture.
+  </Step>
+
+  <Step>
+    ### Configure Across Integration
+
+    Add your integrator ID (required for production), the chains your app supports, and which tokens you bridge. If you only bridge USDC on Arbitrum and Base, say so — the agent won't try to use unsupported routes.
+  </Step>
+
+  <Step>
+    ### Map Your Key Files
+
+    Point the agent to where your bridge logic lives. Include the config file where chains/tokens are defined, the main integration file that calls the API, and any shared types or utilities.
+  </Step>
+
+  <Step>
+    ### Add Project-Specific Conventions
+
+    If your project has additional rules (e.g., "always use BigInt for amounts", "wrap API calls in a try/catch with our logger"), add them to the Conventions section. The agent will follow these patterns in generated code.
+  </Step>
+
+  <Step>
+    ### Define Common Tasks
+
+    Add task-specific instructions for prompts your team uses frequently. For example, if you often ask the agent to "add a new bridge route", describe the exact files to modify and the pattern to follow.
+  </Step>
+</Steps>

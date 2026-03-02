@@ -1,0 +1,145 @@
+---
+title: Deposit ETH into Aave
+description: Swap to ETH crosschain and deposit directly into Aave's lending pool.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+This example swaps tokens crosschain to ETH, then deposits the received ETH into Aave's WETH Gateway — all in a single user transaction. The key mechanism is `populateCallValueDynamically: true`, which forwards the entire swapped ETH balance as the contract call's `msg.value`.
+
+## Action Configuration
+
+```json title="action.json"
+{
+  "actions": [
+    {
+      "target": "0x5283BEcEd7ADF6D003225C13896E536f2D4264FF",
+      "functionSignature": "function depositETH(address, address onBehalfOf, uint16 referralCode)",
+      "args": [
+        {
+          "value": "0x0000000000000000000000000000000000000000",
+          "populateDynamically": false
+        },
+        {
+          "value": "0x718648C8c531F91b528A7757dD2bE813c3940608",
+          "populateDynamically": false
+        },
+        {
+          "value": "0",
+          "populateDynamically": false
+        }
+      ],
+      "value": "0",
+      "isNativeTransfer": false,
+      "populateCallValueDynamically": true
+    }
+  ]
+}
+```
+
+### How It Works
+
+- **`target`** — Aave's WETH Gateway contract (`0x5283BEcEd7ADF6D003225C13896E536f2D4264FF`)
+- **`functionSignature`** — `depositETH(address, address onBehalfOf, uint16 referralCode)`
+- **First arg** — Aave lending pool address (zero address in this case, resolved by the gateway)
+- **Second arg** — `onBehalfOf` — the address that receives the aToken deposit position
+- **Third arg** — Aave referral code (`0` for none)
+- **`populateCallValueDynamically: true`** — The entire ETH balance from the swap is automatically sent as `msg.value` to the `depositETH` call. No need to specify a static `value`
+
+## Full Example
+
+```ts title="swap-and-deposit-aave.ts"
+import { createWalletClient, createPublicClient, http, parseUnits } from "viem";
+import { arbitrum } from "viem/chains";
+import { privateKeyToAccount } from "viem/accounts";
+
+const account = privateKeyToAccount("0xYOUR_PRIVATE_KEY");
+
+const walletClient = createWalletClient({
+  account,
+  chain: arbitrum,
+  transport: http(),
+});
+
+const publicClient = createPublicClient({
+  chain: arbitrum,
+  transport: http(),
+});
+
+const MULTICALL_HANDLER = "0x924a9f036260DdD5808007E1AA95f08eD08aA569";
+const AAVE_WETH_GATEWAY = "0x5283BEcEd7ADF6D003225C13896E536f2D4264FF";
+const DEPOSIT_BENEFICIARY = "0x718648C8c531F91b528A7757dD2bE813c3940608";
+
+async function swapAndDepositToAave() {
+  const params = new URLSearchParams({
+    tradeType: "exactInput",
+    originChainId: "42161",                // Arbitrum
+    destinationChainId: "1",               // Ethereum
+    inputToken: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",  // USDC on Arbitrum
+    outputToken: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2", // WETH on Ethereum
+    amount: parseUnits("500", 6).toString(),
+    depositor: account.address,
+    recipient: MULTICALL_HANDLER,
+  });
+
+  const response = await fetch(
+    `https://app.across.to/api/swap/approval?${params}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        actions: [
+          {
+            target: AAVE_WETH_GATEWAY,
+            functionSignature:
+              "function depositETH(address, address onBehalfOf, uint16 referralCode)",
+            args: [
+              {
+                value: "0x0000000000000000000000000000000000000000",
+                populateDynamically: false,
+              },
+              {
+                value: DEPOSIT_BENEFICIARY,
+                populateDynamically: false,
+              },
+              {
+                value: "0",
+                populateDynamically: false,
+              },
+            ],
+            value: "0",
+            isNativeTransfer: false,
+            populateCallValueDynamically: true,
+          },
+        ],
+      }),
+    }
+  );
+
+  const quote = await response.json();
+
+  if (quote.approvalTxns?.length) {
+    for (const approvalTx of quote.approvalTxns) {
+      const hash = await walletClient.sendTransaction({
+        to: approvalTx.to,
+        data: approvalTx.data,
+      });
+      await publicClient.waitForTransactionReceipt({ hash });
+    }
+  }
+
+  const hash = await walletClient.sendTransaction({
+    to: quote.swapTx.to,
+    data: quote.swapTx.data,
+    value: quote.swapTx.value ? BigInt(quote.swapTx.value) : 0n,
+  });
+
+  console.log("Swap + Aave deposit tx:", hash);
+}
+
+swapAndDepositToAave();
+```
+
+<Callout type="info">
+  `populateCallValueDynamically: true` tells the MulticallHandler to use the **entire ETH balance** received from the swap as `msg.value` for the `depositETH` call. This is the key mechanism for forwarding native ETH into DeFi protocols.
+</Callout>

@@ -1,0 +1,4 @@
+{
+  "title": "Embedded Actions",
+  "pages": ["index", "transfer-erc20", "deposit-eth-aave", "hubpool-liquidity", "native-eth-transfer", "nested-parameters"]
+}

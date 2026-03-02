@@ -1,0 +1,118 @@
+---
+title: Handling Nested Parameters
+description: How to encode tuples and struct parameters in embedded action function signatures.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+Some destination-chain contracts accept complex parameters — arrays of structs, nested tuples, or compound types. The Swap API handles these by treating nested arguments collectively: you define them as arrays or tuples in the `value` property and apply `populateDynamically` and `balanceSourceToken` to the entire group, not individual elements.
+
+## How Nested Parameters Work
+
+Each argument in the `args` array supports three properties:
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `value` | `string` | The parameter data — can be a single value or a JSON-encoded array for tuples |
+| `populateDynamically` | `boolean` | If `true`, the runtime balance replaces the value for the entire nested structure |
+| `balanceSourceToken` | `string` | Token address for dynamic population (required when `populateDynamically: true`) |
+
+For nested types, the `value` contains an inner array with all struct fields in the exact order defined by the ABI.
+
+## Example: ERC-4337 `handleOps`
+
+This example calls `handleOps` on an EntryPoint contract, which accepts an array of `UserOperation` structs:
+
+```json title="nested-action.json"
+{
+  "actions": [
+    {
+      "target": "0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789",
+      "functionSignature": "function handleOps((address,uint256,bytes,bytes,bytes32,uint256,bytes32,bytes,bytes)[],address)",
+      "args": [
+        {
+          "value": [
+            [
+              "0xSenderAddress",
+              "0",
+              "0x",
+              "0xCallData",
+              "0x0000000000000000000000000000000000000000000000000000000000000000",
+              "100000",
+              "0x0000000000000000000000000000000000000000000000000000000000000000",
+              "0x",
+              "0xSignature"
+            ]
+          ],
+          "populateDynamically": false
+        },
+        {
+          "value": "0xBeneficiaryAddress",
+          "populateDynamically": false
+        }
+      ],
+      "value": "0",
+      "isNativeTransfer": false,
+      "populateCallValueDynamically": false
+    }
+  ]
+}
+```
+
+### Breaking It Down
+
+The function signature is:
+```
+function handleOps((address,uint256,bytes,bytes,bytes32,uint256,bytes32,bytes,bytes)[],address)
+```
+
+This accepts:
+1. An **array of UserOperation tuples** — each tuple contains 9 fields (sender, nonce, initCode, callData, accountGasLimits, preVerificationGas, gasFees, paymasterAndData, signature)
+2. A **beneficiary address**
+
+In the `args` array:
+- **First arg** — The outer array `[...]` contains one inner array `[...]` representing a single UserOperation. Each element in the inner array corresponds to a tuple field, in exact ABI order
+- **Second arg** — The beneficiary address, a simple static value
+
+## Key Rules
+
+<Callout type="warn">
+  **Order matters.** Values in the nested array must match the tuple definition exactly as specified in the ABI. Getting the order wrong will cause the transaction to revert.
+</Callout>
+
+- **Collective application** — `populateDynamically` and `balanceSourceToken` apply to the entire nested structure, not individual fields within a tuple
+- **Type flexibility** — Nested parameters can mix addresses, uints, bytes, and other types as long as they maintain proper ABI ordering
+- **Array of structs** — Wrap each struct as an inner array, then wrap all structs in an outer array
+
+## Encoding Verification
+
+If you're unsure about the encoding, you can verify with viem's `encodeAbiParameters`:
+
+```ts title="verify-encoding.ts"
+import { encodeAbiParameters, parseAbiParameters } from "viem";
+
+// Verify your tuple encoding matches what the contract expects
+const encoded = encodeAbiParameters(
+  parseAbiParameters(
+    "(address,uint256,bytes,bytes,bytes32,uint256,bytes32,bytes,bytes)[],address"
+  ),
+  [
+    [
+      [
+        "0xSenderAddress",
+        0n,
+        "0x",
+        "0xCallData",
+        "0x0000000000000000000000000000000000000000000000000000000000000000",
+        100000n,
+        "0x0000000000000000000000000000000000000000000000000000000000000000",
+        "0x",
+        "0xSignature",
+      ],
+    ],
+    "0xBeneficiaryAddress",
+  ]
+);
+
+console.log("Encoded:", encoded);
+```

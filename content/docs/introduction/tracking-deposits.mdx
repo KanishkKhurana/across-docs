@@ -1,0 +1,167 @@
+---
+title: Tracking Deposits
+description: Monitor crosschain transfer status using the deposit tracking API.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
+
+After executing a swap transaction, use the `/deposit/status` endpoint to track whether the deposit has been filled, is still pending, or has expired.
+
+## Status Values
+
+| Status | Description |
+|--------|-------------|
+| `pending` | Deposit submitted but not yet filled by a relayer |
+| `filled` | Relayer has filled the intent on the destination chain |
+| `expired` | Fill deadline passed without a fill (eligible for refund) |
+| `refunded` | Deposit was refunded after expiration |
+
+## Query Methods
+
+You can query deposit status in two ways: by `depositId` (extracted from the deposit event) or by the deposit transaction hash.
+
+<Tabs items={["By depositId", "By depositTxHash"]}>
+  <Tab value="By depositId">
+    Query with the `originChainId` and `depositId` from the `V3FundsDeposited` event.
+
+    ```
+    GET /deposit/status?originChainId=42161&depositId=12345
+    ```
+  </Tab>
+  <Tab value="By depositTxHash">
+    Query with the deposit transaction hash. The API will look up the deposit event from the transaction.
+
+    ```
+    GET /deposit/status?depositTxnRef=0xabc123...
+    ```
+  </Tab>
+</Tabs>
+
+## Extracting the Deposit ID
+
+When you submit a swap transaction, the origin SpokePool emits a `V3FundsDeposited` event. Extract the `depositId` from this event to use for status tracking.
+
+```ts title="extract-deposit-id.ts"
+import { createPublicClient, http, parseAbiItem } from "viem";
+import { arbitrum } from "viem/chains";
+
+const publicClient = createPublicClient({
+  chain: arbitrum,
+  transport: http(),
+});
+
+const SPOKE_POOL_ADDRESS = "0xe35e9842fceaca96570b734083f4a58e8f7c5f2a";
+
+async function getDepositId(txHash: `0x${string}`) {
+  const receipt = await publicClient.getTransactionReceipt({ hash: txHash });
+
+  const depositEvent = parseAbiItem(
+    "event V3FundsDeposited(address inputToken, address outputToken, uint256 inputAmount, uint256 outputAmount, uint256 indexed destinationChainId, uint32 indexed depositId, uint32 quoteTimestamp, uint32 fillDeadline, uint32 exclusivityDeadline, address indexed depositor, address recipient, address exclusiveRelayer, bytes message)"
+  );
+
+  const logs = await publicClient.getLogs({
+    address: SPOKE_POOL_ADDRESS,
+    event: depositEvent,
+    fromBlock: receipt.blockNumber,
+    toBlock: receipt.blockNumber,
+  });
+
+  if (logs.length === 0) {
+    throw new Error("No V3FundsDeposited event found in transaction");
+  }
+
+  const depositId = logs[0].args.depositId;
+  console.log("Deposit ID:", depositId);
+  return depositId;
+}
+```
+
+## Polling for Status
+
+Poll the `/deposit/status` endpoint until the deposit reaches a terminal state (`filled`, `expired`, or `refunded`).
+
+```ts title="poll-status.ts"
+const BASE_URL = "https://app.across.to/api";
+
+async function pollDepositStatus(
+  originChainId: number,
+  depositId: number,
+  intervalMs = 10_000,
+  maxAttempts = 60
+): Promise<string> {
+  for (let i = 0; i < maxAttempts; i++) {
+    const params = new URLSearchParams({
+      originChainId: originChainId.toString(),
+      depositId: depositId.toString(),
+    });
+
+    const res = await fetch(`${BASE_URL}/deposit/status?${params}`);
+    const data = await res.json();
+
+    console.log(`[Attempt ${i + 1}] Status: ${data.status}`);
+
+    if (data.status === "filled") {
+      console.log("Deposit filled on destination chain");
+      return data.status;
+    }
+
+    if (data.status === "expired") {
+      console.log("Deposit expired — eligible for refund");
+      return data.status;
+    }
+
+    if (data.status === "refunded") {
+      console.log("Deposit refunded");
+      return data.status;
+    }
+
+    // Wait before next poll
+    await new Promise((resolve) => setTimeout(resolve, intervalMs));
+  }
+
+  throw new Error("Polling timed out");
+}
+
+// Usage
+const status = await pollDepositStatus(42161, 12345);
+```
+
+## Polling Recommendations
+
+<Callout type="info">
+  **10-second polling interval.** The Across indexer has a latency of 1-15 seconds. Polling more frequently than every 10 seconds won't return faster results and will waste API calls.
+</Callout>
+
+- **Mainnet fills** typically complete in ~2 seconds, but the indexer may take 1-15 seconds to reflect the status
+- **Testnet fills** take ~1 minute
+- Set a reasonable timeout (e.g., 10 minutes) to avoid polling indefinitely
+- For production integrations, consider using a webhook or event-based approach alongside polling
+
+## Alternative: Query by Transaction Hash
+
+If you don't want to extract the `depositId`, you can query directly with the transaction hash:
+
+```ts title="poll-by-hash.ts"
+async function pollByTxHash(
+  txHash: string,
+  intervalMs = 10_000,
+  maxAttempts = 60
+): Promise<string> {
+  for (let i = 0; i < maxAttempts; i++) {
+    const params = new URLSearchParams({ depositTxnRef: txHash });
+    const res = await fetch(`${BASE_URL}/deposit/status?${params}`);
+    const data = await res.json();
+
+    console.log(`[Attempt ${i + 1}] Status: ${data.status}`);
+
+    if (["filled", "expired", "refunded"].includes(data.status)) {
+      return data.status;
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, intervalMs));
+  }
+
+  throw new Error("Polling timed out");
+}
+```

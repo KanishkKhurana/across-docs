@@ -1,0 +1,489 @@
+---
+title: "Crosschain Deposit into Aave"
+description: Bridge USDC from Arbitrum, swap to ETH on Ethereum, and deposit into Aave's lending pool — in a single transaction.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+In this guide you'll build a script that takes USDC on Arbitrum and, in a **single user transaction**, bridges it to Ethereum, swaps it to ETH, and deposits the ETH into Aave's lending pool. The user signs once on Arbitrum and ends up with an aWETH position on Ethereum.
+
+This is powered by **embedded crosschain actions** — instructions attached to the Swap API request that the MulticallHandler contract executes on the destination chain after the swap lands.
+
+## Prerequisites
+
+- Node.js 20+
+- A wallet with at least 100 USDC on Arbitrum (+ gas)
+- Basic familiarity with [the Swap API](/docs/introduction/swap-api) — if you haven't read the [basic integration guide](/docs/guides/dev-guides/integrate-swap-api), start there
+
+Install dependencies:
+
+```bash title="terminal"
+npm init -y
+npm install viem
+```
+
+## How It Works
+
+Here's the high-level flow:
+
+1. **User deposits** USDC on Arbitrum via the Swap API
+2. **Relayer fills** the intent on Ethereum, delivering ETH to the MulticallHandler contract
+3. **MulticallHandler executes** our embedded action — calling `depositETH()` on Aave's WETH Gateway
+4. **User receives** an aWETH position on Ethereum, credited to their address
+
+The key insight: the `recipient` of the swap is set to the **MulticallHandler** contract (not the user). The MulticallHandler receives the ETH and then forwards it into Aave on the user's behalf.
+
+---
+
+<Steps>
+  <Step>
+    ### Step 1 — Discover Chains and Tokens
+
+    Just like the basic guide, we start by querying the Across API for supported chains and tokens. We need Arbitrum as origin and Ethereum as destination, with USDC on Arbitrum and WETH on Ethereum.
+
+    ```ts title="aave-deposit.ts"
+    const BASE_URL = "https://app.across.to/api";
+
+    async function getChains() {
+      const res = await fetch(`${BASE_URL}/swap/chains`);
+      return res.json();
+    }
+
+    async function getTokens(chainId: number) {
+      const res = await fetch(`${BASE_URL}/swap/tokens?chainId=${chainId}`);
+      return res.json();
+    }
+
+    function findChain(chains: any[], name: string) {
+      const chain = chains.find(
+        (c: any) => c.name.toLowerCase() === name.toLowerCase()
+      );
+      if (!chain) throw new Error(`Chain "${name}" not found`);
+      return chain;
+    }
+
+    function findToken(tokens: any[], symbol: string) {
+      const token = tokens.find(
+        (t: any) => t.symbol.toUpperCase() === symbol.toUpperCase()
+      );
+      if (!token) throw new Error(`Token "${symbol}" not found`);
+      return token;
+    }
+    ```
+
+    We'll call these in our main function to get the chain IDs and token addresses dynamically.
+  </Step>
+
+  <Step>
+    ### Step 2 — Define the Aave Embedded Action
+
+    The embedded action tells the MulticallHandler what to do after receiving the ETH from the swap. We're calling Aave's WETH Gateway `depositETH()` function.
+
+    ```ts title="aave-deposit.ts"
+    // Aave V3 WETH Gateway on Ethereum Mainnet
+    const AAVE_WETH_GATEWAY = "0x893411580e590D62dDBca8a703d61Cc4A8c7b2b9";
+
+    // MulticallHandler on Ethereum — this is the swap recipient
+    const MULTICALL_HANDLER_ETH = "0x924a9f036260DdD5808007E1AA95f08eD08aA569";
+
+    function buildAaveDepositAction(onBehalfOf: string) {
+      return {
+        // The contract to call on Ethereum
+        target: AAVE_WETH_GATEWAY,
+
+        // Aave's depositETH function
+        functionSignature:
+          "function depositETH(address, address onBehalfOf, uint16 referralCode)",
+
+        args: [
+          {
+            // First param: lending pool address (zero = resolved by gateway)
+            value: "0x0000000000000000000000000000000000000000",
+            populateDynamically: false,
+          },
+          {
+            // Second param: who gets the aWETH position
+            value: onBehalfOf,
+            populateDynamically: false,
+          },
+          {
+            // Third param: referral code (0 = none)
+            value: "0",
+            populateDynamically: false,
+          },
+        ],
+
+        // No static ETH value — we use the dynamic balance instead
+        value: "0",
+
+        // This is a contract call, not a plain ETH transfer
+        isNativeTransfer: false,
+
+        // KEY: Forward the entire ETH balance from the swap as msg.value
+        populateCallValueDynamically: true,
+      };
+    }
+    ```
+
+    Let's break down each field:
+
+    | Field | Value | Why |
+    |-------|-------|-----|
+    | `target` | Aave WETH Gateway | The contract that accepts ETH and deposits into the lending pool |
+    | `functionSignature` | `depositETH(address, address, uint16)` | The exact function signature — the ABI encoding depends on this |
+    | `args[0]` | Zero address | Aave resolves the lending pool address from the gateway |
+    | `args[1]` | User's address | The `onBehalfOf` param — who receives the aWETH |
+    | `args[2]` | `"0"` | No referral code |
+    | `populateCallValueDynamically` | `true` | The MulticallHandler sends the **entire ETH balance** as `msg.value` |
+
+    <Callout type="info">
+      **`populateCallValueDynamically: true` is the key mechanism.** It tells the MulticallHandler to use the entire ETH balance received from the swap as the `msg.value` for the `depositETH` call. Without this, the call would have `msg.value = 0` and deposit nothing.
+    </Callout>
+  </Step>
+
+  <Step>
+    ### Step 3 — Build the Swap API Request
+
+    Embedded actions use the `POST` method on `/swap/approval`. The query parameters are the same as a normal swap, but we add the `actions` array in the request body.
+
+    The critical difference from a basic bridge: **the `recipient` is the MulticallHandler contract**, not the user. The MulticallHandler receives the swapped ETH and then executes our Aave deposit action.
+
+    ```ts title="aave-deposit.ts"
+    import { parseUnits } from "viem";
+
+    async function getQuoteWithActions(params: {
+      originChainId: number;
+      destinationChainId: number;
+      inputToken: string;
+      outputToken: string;
+      amount: string;
+      depositor: string;
+      actions: any[];
+    }) {
+      const searchParams = new URLSearchParams({
+        tradeType: "exactInput",
+        originChainId: params.originChainId.toString(),
+        destinationChainId: params.destinationChainId.toString(),
+        inputToken: params.inputToken,
+        outputToken: params.outputToken,
+        amount: params.amount,
+        depositor: params.depositor,
+        // IMPORTANT: recipient is the MulticallHandler, NOT the user
+        recipient: MULTICALL_HANDLER_ETH,
+      });
+
+      const res = await fetch(
+        `${BASE_URL}/swap/approval?${searchParams}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ actions: params.actions }),
+        }
+      );
+
+      const quote = await res.json();
+
+      if (!quote.swapTx) {
+        throw new Error(`Quote failed: ${JSON.stringify(quote, null, 2)}`);
+      }
+
+      return quote;
+    }
+    ```
+
+    <Callout type="warn">
+      **Don't forget to set `recipient` to the MulticallHandler.** If you set the recipient to the user's address, the swapped ETH goes directly to the user and the embedded action never runs.
+    </Callout>
+  </Step>
+
+  <Step>
+    ### Step 4 — Execute Approvals
+
+    Same as the basic guide — if the user hasn't approved the SpokePool to spend their USDC, the quote will include approval transactions.
+
+    ```ts title="aave-deposit.ts"
+    async function executeApprovals(
+      quote: any,
+      walletClient: any,
+      publicClient: any
+    ) {
+      if (!quote.approvalTxns?.length) {
+        console.log("  No approvals needed.");
+        return;
+      }
+
+      for (const approvalTx of quote.approvalTxns) {
+        const hash = await walletClient.sendTransaction({
+          to: approvalTx.to as `0x${string}`,
+          data: approvalTx.data as `0x${string}`,
+        });
+        console.log(`  Approval tx: ${hash}`);
+        await publicClient.waitForTransactionReceipt({ hash });
+        console.log(`  Confirmed.`);
+      }
+    }
+    ```
+  </Step>
+
+  <Step>
+    ### Step 5 — Execute the Bridge + Aave Deposit
+
+    Send the main swap transaction. From the user's perspective, this is a single transaction on Arbitrum. Behind the scenes, a relayer delivers ETH to the MulticallHandler on Ethereum, which calls `depositETH()` on Aave.
+
+    ```ts title="aave-deposit.ts"
+    async function executeBridge(
+      quote: any,
+      walletClient: any,
+      publicClient: any
+    ) {
+      const hash = await walletClient.sendTransaction({
+        to: quote.swapTx.to as `0x${string}`,
+        data: quote.swapTx.data as `0x${string}`,
+        value: quote.swapTx.value ? BigInt(quote.swapTx.value) : 0n,
+        gas: quote.swapTx.gas ? BigInt(quote.swapTx.gas) : undefined,
+      });
+
+      console.log(`  Bridge tx: ${hash}`);
+
+      const receipt = await publicClient.waitForTransactionReceipt({ hash });
+      console.log(`  Confirmed in block ${receipt.blockNumber}`);
+
+      return hash;
+    }
+    ```
+  </Step>
+</Steps>
+
+## Putting It All Together
+
+```ts title="aave-deposit.ts"
+import {
+  createWalletClient,
+  createPublicClient,
+  http,
+  parseUnits,
+} from "viem";
+import { arbitrum } from "viem/chains";
+import { privateKeyToAccount } from "viem/accounts";
+
+const BASE_URL = "https://app.across.to/api";
+const AAVE_WETH_GATEWAY = "0x893411580e590D62dDBca8a703d61Cc4A8c7b2b9";
+const MULTICALL_HANDLER_ETH = "0x924a9f036260DdD5808007E1AA95f08eD08aA569";
+
+// ── Helpers ──────────────────────────────────────────────
+
+async function getChains() {
+  const res = await fetch(`${BASE_URL}/swap/chains`);
+  return res.json();
+}
+
+async function getTokens(chainId: number) {
+  const res = await fetch(`${BASE_URL}/swap/tokens?chainId=${chainId}`);
+  return res.json();
+}
+
+function findChain(chains: any[], name: string) {
+  const chain = chains.find(
+    (c: any) => c.name.toLowerCase() === name.toLowerCase()
+  );
+  if (!chain) throw new Error(`Chain "${name}" not found`);
+  return chain;
+}
+
+function findToken(tokens: any[], symbol: string) {
+  const token = tokens.find(
+    (t: any) => t.symbol.toUpperCase() === symbol.toUpperCase()
+  );
+  if (!token) throw new Error(`Token "${symbol}" not found`);
+  return token;
+}
+
+function buildAaveDepositAction(onBehalfOf: string) {
+  return {
+    target: AAVE_WETH_GATEWAY,
+    functionSignature:
+      "function depositETH(address, address onBehalfOf, uint16 referralCode)",
+    args: [
+      {
+        value: "0x0000000000000000000000000000000000000000",
+        populateDynamically: false,
+      },
+      {
+        value: onBehalfOf,
+        populateDynamically: false,
+      },
+      {
+        value: "0",
+        populateDynamically: false,
+      },
+    ],
+    value: "0",
+    isNativeTransfer: false,
+    populateCallValueDynamically: true,
+  };
+}
+
+// ── Main ─────────────────────────────────────────────────
+
+async function main() {
+  const account = privateKeyToAccount(
+    process.env.PRIVATE_KEY as `0x${string}`
+  );
+  const walletClient = createWalletClient({
+    account,
+    chain: arbitrum,
+    transport: http(),
+  });
+  const publicClient = createPublicClient({
+    chain: arbitrum,
+    transport: http(),
+  });
+
+  console.log(`Wallet: ${account.address}\n`);
+
+  // ── Step 1: Discover chains and tokens ───────────────
+  console.log("Step 1: Discovering chains and tokens...");
+  const chains = await getChains();
+  const origin = findChain(chains, "Arbitrum");
+  const destination = findChain(chains, "Ethereum");
+
+  const originTokens = await getTokens(origin.chainId);
+  const destTokens = await getTokens(destination.chainId);
+  const inputToken = findToken(originTokens, "USDC");
+  const outputToken = findToken(destTokens, "WETH");
+
+  console.log(`  Route: ${inputToken.symbol} on ${origin.name} → ${outputToken.symbol} on ${destination.name}`);
+  console.log(`  Input:  ${inputToken.address}`);
+  console.log(`  Output: ${outputToken.address}\n`);
+
+  // ── Step 2: Build the Aave action ────────────────────
+  console.log("Step 2: Building Aave deposit action...");
+  const action = buildAaveDepositAction(account.address);
+  console.log(`  Target:     ${action.target} (Aave WETH Gateway)`);
+  console.log(`  OnBehalfOf: ${account.address}`);
+  console.log(`  Recipient:  ${MULTICALL_HANDLER_ETH} (MulticallHandler)\n`);
+
+  // ── Step 3: Get quote with embedded action ───────────
+  console.log("Step 3: Fetching quote for 100 USDC → ETH → Aave...");
+  const amount = parseUnits("100", inputToken.decimals).toString();
+
+  const searchParams = new URLSearchParams({
+    tradeType: "exactInput",
+    originChainId: origin.chainId.toString(),
+    destinationChainId: destination.chainId.toString(),
+    inputToken: inputToken.address,
+    outputToken: outputToken.address,
+    amount,
+    depositor: account.address,
+    recipient: MULTICALL_HANDLER_ETH,
+  });
+
+  const quoteRes = await fetch(
+    `${BASE_URL}/swap/approval?${searchParams}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ actions: [action] }),
+    }
+  );
+
+  const quote = await quoteRes.json();
+
+  if (!quote.swapTx) {
+    throw new Error(`Quote failed: ${JSON.stringify(quote, null, 2)}`);
+  }
+
+  console.log(`  Cross-swap type:   ${quote.crossSwapType}`);
+  console.log(`  Expected fill:     ${quote.expectedFillTime}s`);
+  console.log(`  Simulation passed: ${quote.swapTx.simulationSuccess}\n`);
+
+  // ── Step 4: Execute approvals ────────────────────────
+  console.log("Step 4: Handling approvals...");
+  if (quote.approvalTxns?.length) {
+    for (const approvalTx of quote.approvalTxns) {
+      const hash = await walletClient.sendTransaction({
+        to: approvalTx.to as `0x${string}`,
+        data: approvalTx.data as `0x${string}`,
+      });
+      console.log(`  Approval tx: ${hash}`);
+      await publicClient.waitForTransactionReceipt({ hash });
+      console.log(`  Confirmed.`);
+    }
+  } else {
+    console.log("  No approvals needed.");
+  }
+  console.log();
+
+  // ── Step 5: Execute bridge + Aave deposit ────────────
+  console.log("Step 5: Executing bridge + Aave deposit...");
+  const hash = await walletClient.sendTransaction({
+    to: quote.swapTx.to as `0x${string}`,
+    data: quote.swapTx.data as `0x${string}`,
+    value: quote.swapTx.value ? BigInt(quote.swapTx.value) : 0n,
+    gas: quote.swapTx.gas ? BigInt(quote.swapTx.gas) : undefined,
+  });
+
+  console.log(`  Bridge tx: ${hash}`);
+
+  const receipt = await publicClient.waitForTransactionReceipt({ hash });
+  console.log(`  Confirmed in block ${receipt.blockNumber}`);
+  console.log(`\n  View on Arbiscan: ${origin.explorerUrl}/tx/${hash}`);
+  console.log(`  Your aWETH position on Ethereum will appear in ~${quote.expectedFillTime} seconds.`);
+}
+
+main().catch(console.error);
+```
+
+## Running It
+
+```bash title="terminal"
+PRIVATE_KEY=0xYOUR_PRIVATE_KEY npx tsx aave-deposit.ts
+```
+
+Expected output:
+
+```
+Wallet: 0xYourAddress
+
+Step 1: Discovering chains and tokens...
+  Route: USDC on Arbitrum → WETH on Ethereum
+  Input:  0xaf88d065e77c8cC2239327C5EDb3A432268e5831
+  Output: 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2
+
+Step 2: Building Aave deposit action...
+  Target:     0x893411580e590D62dDBca8a703d61Cc4A8c7b2b9 (Aave WETH Gateway)
+  OnBehalfOf: 0xYourAddress
+  Recipient:  0x924a9f036260DdD5808007E1AA95f08eD08aA569 (MulticallHandler)
+
+Step 3: Fetching quote for 100 USDC → ETH → Aave...
+  Cross-swap type:   anyToBridgeable
+  Expected fill:     2s
+  Simulation passed: true
+
+Step 4: Handling approvals...
+  Approval tx: 0xabc123...
+  Confirmed.
+
+Step 5: Executing bridge + Aave deposit...
+  Bridge tx: 0xdef456...
+  Confirmed in block 284719304
+
+  View on Arbiscan: https://arbiscan.io/tx/0xdef456...
+  Your aWETH position on Ethereum will appear in ~2 seconds.
+```
+
+## What Happens Under the Hood
+
+1. Your USDC is deposited into the Arbitrum SpokePool
+2. A relayer detects the intent and fills it on Ethereum — delivering ETH to the MulticallHandler contract
+3. The MulticallHandler reads the embedded action and calls `depositETH()` on Aave's WETH Gateway, forwarding all the ETH as `msg.value`
+4. Aave deposits the ETH and mints aWETH to your address (the `onBehalfOf` param)
+5. ~1.5 hours later, the relayer is reimbursed through Across's settlement process
+
+## Next Steps
+
+- **Try other DeFi protocols** — the same pattern works for any contract that accepts ETH or ERC-20 tokens. Change the `target`, `functionSignature`, and `args`.
+- **Use dynamic token amounts** — set `populateDynamically: true` with `balanceSourceToken` to forward the exact swapped balance for ERC-20 actions. See [Transfer ERC-20 Tokens](/docs/introduction/embedded-actions/transfer-erc20).
+- **Chain multiple actions** — add more objects to the `actions` array to execute a sequence of operations on the destination.
+- **Track the deposit** — poll `/deposit/status` to confirm everything landed. See [Tracking Deposits](/docs/introduction/tracking-deposits).

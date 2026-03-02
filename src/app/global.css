@@ -1,3 +1,40 @@
 @import 'tailwindcss';
 @import 'fumadocs-ui/css/neutral.css';
 @import 'fumadocs-ui/css/preset.css';
+@import 'fumadocs-openapi/css/preset.css';
+
+/* Across Protocol theme */
+:root {
+  --color-fd-background: #151518 !important;
+  --color-fd-foreground: #E0F3FF !important;
+  --color-fd-primary: #6CF9D8 !important;
+  --color-fd-primary-foreground: #151518 !important;
+  --color-fd-ring: #6CF9D8 !important;
+  --color-fd-popover: #1B1B1E !important;
+  --color-fd-popover-foreground: #E0F3FF !important;
+  --color-fd-card: #1B1B1E !important;
+  --color-fd-card-foreground: #E0F3FF !important;
+  --color-fd-secondary: #1B1B1E !important;
+  --color-fd-secondary-foreground: #E0F3FF !important;
+  --color-fd-muted: #1B1B1E !important;
+  --color-fd-muted-foreground: rgba(224, 243, 255, 0.55) !important;
+  --color-fd-accent: rgba(108, 249, 216, 0.15) !important;
+  --color-fd-accent-foreground: #E0F3FF !important;
+  --color-fd-border: rgba(224, 243, 255, 0.1) !important;
+  --color-fd-overlay: rgba(0, 0, 0, 0.4) !important;
+}
+
+/* Sidebar background: #1B1B1E */
+#nd-sidebar {
+  background-color: #1b1b1e85 !important;
+  border-inline-end: 1px solid rgba(224, 243, 255, 0.08);
+  --color-fd-background: #1B1B1E !important;
+  --color-fd-muted: #232328 !important;
+  --color-fd-secondary: #232328 !important;
+  --color-fd-muted-foreground: rgba(224, 243, 255, 0.6) !important;
+}
+
+/* Add spacing between sidebar items */
+#nd-sidebar a[data-active][href^="/"] {
+  margin-block: 2px !important;
+}

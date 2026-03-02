@@ -1,0 +1,63 @@
+---
+title: What are Crosschain Intents?
+description: How intent-based bridging differs from traditional bridges and why it matters.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+An **intent** is an order where users declare a desired **outcome** rather than specifying the execution steps. Traditional bridges require users to specify the exact path: lock tokens here, mint tokens there, wait for finality. Intents flip this model — users say "I want 100 USDC on Base" and a competitive network of solvers figures out the best way to make it happen.
+
+Across specializes exclusively in **crosschain** intents — outcomes that span multiple blockchains.
+
+## Intents vs. Traditional Bridges
+
+| | Traditional Bridge | Intent-Based (Across) |
+|---|---|---|
+| **User specifies** | Exact execution path | Desired outcome |
+| **Execution** | Protocol-defined, single path | Solver-optimized, flexible |
+| **Speed** | Minutes to days (finality-bound) | ~2 seconds (solver-fronted) |
+| **Complexity** | User bears routing complexity | Solver bears complexity |
+| **Capital model** | Lock-and-mint or liquidity pools | Competitive solver capital |
+
+## Three Phases of Crosschain Intents
+
+Across's intent model has evolved through three phases since 2021:
+
+<Steps>
+  <Step>
+    ### Phase 1 — Same-Asset Transfer (2021)
+
+    The foundational use case. A user's intent specifies moving the **same asset** from Chain A to Chain B. For example: "Send my USDC from Arbitrum to Base."
+
+    This has been Across's core offering since launch.
+  </Step>
+  <Step>
+    ### Phase 2 — Transfer + Execution
+
+    A user's intent specifies moving an asset from Chain A to Chain B **and then executing a transaction on Chain B**. For example: "Bridge my USDC to Ethereum and deposit it into Aave."
+
+    This is enabled through [embedded crosschain actions](/docs/introduction/embedded-actions) — instructions attached to the intent that execute on the destination chain after the fill.
+  </Step>
+  <Step>
+    ### Phase 3 — Swap + Execution
+
+    A user's intent specifies **swapping** asset X on Chain A for a minimum amount of asset Y on Chain B, optionally followed by a transaction on Chain B. For example: "Swap my ETH on Arbitrum for at least 2000 USDC on Base and transfer it to a specific address."
+
+    This is the current state, powered by [Across Settlement](/docs/guides/concepts/intents-architecture) infrastructure.
+  </Step>
+</Steps>
+
+## Why Intents Win
+
+**For users**: No need to understand bridges, finality, or routing. Declare the outcome and get it in ~2 seconds.
+
+**For developers**: A single API call handles all the complexity. No need to integrate multiple bridges or manage routing logic.
+
+**For solvers/relayers**: A competitive marketplace where speed and capital efficiency determine profits.
+
+## ERC-7683: Standardizing Intents
+
+Across is developing **ERC-7683**, a crosschain intent order standard that defines a unified format for how intents are submitted, bid on, escrowed, and settled. The goal is to make crosschain intents interoperable across the ecosystem — any solver network can fill any standardized intent.
+
+See [ERC-7683 in Production](/docs/introduction/erc-7683) for implementation details.

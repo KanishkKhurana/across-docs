@@ -1,0 +1,145 @@
+---
+title: Welcome to Across
+description: Crosschain interoperability with ~2 second fills across 23+ chains.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+<Callout type="info">
+  MegaETH is now live on Across. Bridge to and from MegaETH (Chain ID 4326) using the Swap API.
+</Callout>
+
+## What is Across?
+
+Across is a **crosschain interoperability protocol** that provides the fastest, cheapest, and most secure way to move assets across blockchains. With ~2 second fills on mainnet and support for 23+ chains, Across powers crosschain swaps, bridges, and embedded actions through a single unified API.
+
+Unlike single-mechanism bridges, Across intelligently routes through **three distinct settlement pathways** to optimize for speed, cost, and transfer size.
+
+## Three Settlement Pathways
+
+<Cards>
+  <Card title="Intents (Relayer Network)">
+    The primary mechanism. Competitive relayers fulfill user intents using their own capital, then get repaid via optimistic settlement through UMA's oracle. Handles the vast majority of transfers with ~2 second fill times.
+  </Card>
+  <Card title="CCTP (Circle)">
+    For large USDC transfers up to **$10 million**. Uses Circle's native mint-and-burn infrastructure for native USDC settlement. No relayer capital required — Circle mints fresh USDC on the destination chain.
+  </Card>
+  <Card title="OFT Mint-and-Burn">
+    For tokens like **USDT** that use the LayerZero OFT standard. Burns tokens on the origin chain and mints them natively on the destination. No wrapped tokens or liquidity pools needed.
+  </Card>
+</Cards>
+
+The [Swap API](/docs/introduction/swap-api) automatically selects the optimal pathway — you don't need to choose.
+
+## Quick Start
+
+Get a crosschain swap executing in three steps:
+
+<Steps>
+  <Step>
+    ### Get a Quote
+
+    Call the Swap API with your transfer parameters to get executable calldata.
+
+    ```ts title="get-quote.ts"
+    const params = new URLSearchParams({
+      tradeType: "minOutput",
+      originChainId: "42161",        // Arbitrum
+      destinationChainId: "8453",    // Base
+      inputToken: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",  // USDC on Arbitrum
+      outputToken: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", // USDC on Base
+      amount: "1000000000",          // 1000 USDC (6 decimals)
+      depositor: "0xYourWalletAddress",
+    });
+
+    const response = await fetch(
+      `https://app.across.to/api/swap/approval?${params}`
+    );
+    const quote = await response.json();
+    ```
+  </Step>
+  <Step>
+    ### Approve Token Spending
+
+    If the quote includes approval transactions, execute them first.
+
+    ```ts title="approve.ts"
+    import { createWalletClient, http } from "viem";
+    import { arbitrum } from "viem/chains";
+    import { privateKeyToAccount } from "viem/accounts";
+
+    const account = privateKeyToAccount("0xYOUR_PRIVATE_KEY");
+    const walletClient = createWalletClient({
+      account,
+      chain: arbitrum,
+      transport: http(),
+    });
+
+    if (quote.approvalTxns?.length) {
+      for (const approvalTx of quote.approvalTxns) {
+        const hash = await walletClient.sendTransaction({
+          to: approvalTx.to,
+          data: approvalTx.data,
+        });
+        console.log("Approval tx:", hash);
+      }
+    }
+    ```
+  </Step>
+  <Step>
+    ### Execute the Swap
+
+    Send the main swap transaction using the calldata from the quote.
+
+    ```ts title="execute.ts"
+    const hash = await walletClient.sendTransaction({
+      to: quote.swapTx.to,
+      data: quote.swapTx.data,
+      value: quote.swapTx.value ? BigInt(quote.swapTx.value) : 0n,
+      gas: quote.swapTx.gas ? BigInt(quote.swapTx.gas) : undefined,
+    });
+
+    console.log("Swap tx:", hash);
+    // Funds arrive on Base in ~2 seconds
+    ```
+  </Step>
+</Steps>
+
+## Supported Chains
+
+Across supports **23 mainnet chains** including:
+
+| Chain | Chain ID |
+|-------|----------|
+| Ethereum | 1 |
+| Optimism | 10 |
+| BNB Smart Chain | 56 |
+| Arbitrum | 42161 |
+| Base | 8453 |
+| Polygon | 137 |
+| zkSync | 324 |
+| Linea | 59144 |
+| Scroll | 534352 |
+| Solana | 34268394551451 |
+| MegaETH | 4326 |
+| Monad | 143 |
+| HyperEVM | 999 |
+| Plasma | 9745 |
+
+And 8 testnet chains (Sepolia variants) for development. Use `https://testnet.across.to/api` as the base URL for testnet.
+
+## What's Next
+
+<Cards>
+  <Card title="Across for Stablecoins" href="/docs/introduction/stablecoins">
+    Learn how CCTP and OFT settlement enable native stablecoin transfers at scale.
+  </Card>
+  <Card title="Swap API" href="/docs/introduction/swap-api">
+    Deep dive into the Swap API — parameters, response structure, and integration patterns.
+  </Card>
+  <Card title="Working with Hypercore" href="/docs/introduction/hypercore">
+    Bridge assets to Hyperliquid's sub-second settlement layer.
+  </Card>
+</Cards>

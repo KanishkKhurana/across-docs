@@ -1,0 +1,80 @@
+---
+title: AI Agents
+description: Give your AI agent crosschain superpowers with a single command.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+## Add Across to your agent with one command
+
+```bash title="terminal"
+npx skills add https://github.com/across-protocol/skills --yes
+```
+
+Compatible with **Claude Code**, **Codex**, **Cursor**, **Openclaw**, and more.
+
+<Callout type="info">
+  The `skills` CLI automatically detects your agent framework and installs the right configuration. No manual setup required.
+</Callout>
+
+---
+
+### What your agent gets
+
+Once installed, your AI agent can:
+
+- **Bridge tokens** across 23+ chains with natural language commands
+- **Get live quotes** — fees, estimated fill times, and optimal routes
+- **Execute crosschain swaps** — USDC, USDT, WETH, and more
+- **Track deposits** — check fill status and confirmations in real time
+- **Compose embedded actions** — bridge + swap + deposit into DeFi in one transaction
+
+### Supported Agents
+
+| Agent Framework | Status |
+|----------------|--------|
+| Claude Code | Supported |
+| Codex | Supported |
+| Cursor | Supported |
+| Openclaw | Supported |
+
+### How it works
+
+The skills package provides your agent with structured tool definitions that map directly to the Across Swap API. Your agent receives:
+
+1. **Chain discovery** — query supported chains and tokens
+2. **Quote generation** — get executable calldata for any crosschain transfer
+3. **Transaction execution** — approval and bridge transaction helpers
+4. **Status tracking** — monitor deposits until they're filled
+
+The agent handles the entire flow autonomously — from selecting the right route to executing the transaction.
+
+### Example prompt
+
+Once the skill is installed, you can simply tell your agent:
+
+```
+Bridge 100 USDC from Arbitrum to Base
+```
+
+The agent will discover chains, look up token addresses, fetch a quote, handle approvals, and execute the bridge — all without any additional code.
+
+---
+
+### Explore
+
+<Cards>
+  <Card title="Machine-Readable Docs" href="/docs/ai-agents/llms-txt">
+    Feed Across documentation to agents and RAG pipelines via llms.txt endpoints.
+  </Card>
+  <Card title="AGENTS.md Template" href="/docs/ai-agents/agents-md">
+    Drop-in AGENTS.md for repos integrating Across — gives coding agents full context.
+  </Card>
+  <Card title="Prompt Library" href="/docs/ai-agents/prompt-library">
+    Curated prompts for discovery, quoting, execution, tracking, and DeFi composition.
+  </Card>
+  <Card title="Agent Workflows" href="/docs/ai-agents/agent-examples">
+    End-to-end examples showing real agent sessions performing crosschain tasks.
+  </Card>
+</Cards>

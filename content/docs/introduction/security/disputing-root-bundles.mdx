@@ -1,0 +1,168 @@
+---
+title: Disputing Root Bundles
+description: How to challenge invalid bundle proposals — manually or with automated tooling.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
+
+Anyone can dispute a root bundle proposal if they believe it is invalid. Disputes require posting a bond, and the outcome is resolved by UMA's Data Verification Mechanism (DVM) — a decentralized voting system where UMA token holders determine whether the proposal was valid.
+
+## Why Disputes Matter
+
+The bond mechanism serves two purposes:
+
+1. **Prevents fraud** — Invalid proposals that would move funds incorrectly can be challenged before execution
+2. **Prevents denial-of-service** — The bond requirement makes it expensive to file frivolous disputes that block valid proposals
+
+If a dispute succeeds (the proposal was invalid), the proposer loses their bond to the disputer. If a dispute fails (the proposal was valid), the disputer loses their bond to the proposer.
+
+## Manual Dispute Process
+
+<Steps>
+  <Step>
+    ### Check Bond Requirements
+
+    Query the HubPool contract to determine the required bond token and amount.
+
+    ```ts title="check-bond.ts"
+    import { createPublicClient, http, parseAbi } from "viem";
+    import { mainnet } from "viem/chains";
+
+    const publicClient = createPublicClient({
+      chain: mainnet,
+      transport: http(),
+    });
+
+    const HUBPOOL = "0xc186fA914353c44b2E33eBE05f21846F1048bEda";
+
+    const hubPoolAbi = parseAbi([
+      "function bondToken() view returns (address)",
+      "function bondAmount() view returns (uint256)",
+    ]);
+
+    const bondToken = await publicClient.readContract({
+      address: HUBPOOL,
+      abi: hubPoolAbi,
+      functionName: "bondToken",
+    });
+
+    const bondAmount = await publicClient.readContract({
+      address: HUBPOOL,
+      abi: hubPoolAbi,
+      functionName: "bondAmount",
+    });
+
+    console.log("Bond token:", bondToken);
+    console.log("Bond amount:", bondAmount); // Typically ~0.45 ABT
+    ```
+  </Step>
+  <Step>
+    ### Mint Across Bond Token (ABT)
+
+    ABT functions like WETH — deposit ETH to mint ABT.
+
+    ```ts title="mint-abt.ts"
+    import { parseAbi, parseEther } from "viem";
+
+    // bondToken address from step 1
+    const ABT_ADDRESS = bondToken;
+
+    const mintHash = await walletClient.writeContract({
+      address: ABT_ADDRESS,
+      abi: parseAbi(["function deposit() payable"]),
+      functionName: "deposit",
+      value: parseEther("0.5"), // Slightly more than required bond
+    });
+
+    await publicClient.waitForTransactionReceipt({ hash: mintHash });
+    console.log("ABT minted:", mintHash);
+    ```
+  </Step>
+  <Step>
+    ### Approve HubPool
+
+    Grant the HubPool contract permission to transfer your ABT bond.
+
+    ```ts title="approve-hubpool.ts"
+    const approveHash = await walletClient.writeContract({
+      address: ABT_ADDRESS,
+      abi: parseAbi(["function approve(address spender, uint256 amount)"]),
+      functionName: "approve",
+      args: [HUBPOOL, bondAmount],
+    });
+
+    await publicClient.waitForTransactionReceipt({ hash: approveHash });
+    console.log("Approval confirmed:", approveHash);
+    ```
+  </Step>
+  <Step>
+    ### Submit Dispute
+
+    Call `disputeRootBundle()` on the HubPool contract.
+
+    ```ts title="dispute.ts"
+    const disputeHash = await walletClient.writeContract({
+      address: HUBPOOL,
+      abi: parseAbi(["function disputeRootBundle()"]),
+      functionName: "disputeRootBundle",
+    });
+
+    console.log("Dispute submitted:", disputeHash);
+    ```
+
+    The dispute is now escalated to UMA's DVM for resolution.
+  </Step>
+</Steps>
+
+## Automated Disputes
+
+The Across relayer repository includes automated dispute tooling that handles bond minting, approval, and submission.
+
+<Tabs items={["Setup", "Run"]}>
+  <Tab value="Setup">
+    ```bash title="setup"
+    git clone https://github.com/across-protocol/relayer-v3.git
+    cd relayer-v3
+    yarn install && yarn build
+    ```
+
+    Configure your `.env` file with a mnemonic for the EOA that will submit the dispute:
+
+    ```bash title=".env"
+    SECRET=your_mnemonic_phrase_here
+    ```
+
+    Ensure the account is funded with:
+    - At least **0.45 ETH** (to mint ABT for the bond)
+    - Additional ETH for transaction gas costs
+  </Tab>
+  <Tab value="Run">
+    ```bash title="run-dispute"
+    yarn dispute
+    ```
+
+    The script will:
+    1. Check if there's a pending proposal to dispute
+    2. Mint ABT if needed
+    3. Approve the HubPool
+    4. Prompt you for confirmation with a transaction hash
+    5. Submit the dispute transaction
+  </Tab>
+</Tabs>
+
+<Callout type="warn">
+  **Only dispute if you are confident the proposal is invalid.** If the DVM votes that the proposal was valid, you lose your bond (~0.45 ABT / ETH). Run validation checks before disputing — see [Validating Root Bundles](/docs/introduction/security/validating-root-bundles).
+</Callout>
+
+## After a Dispute
+
+Once a dispute is filed:
+
+1. The pending bundle proposal is **paused** — it cannot be executed
+2. The dispute is escalated to UMA's DVM
+3. UMA token holders **vote** on whether the proposal was valid per UMIP-157 / UMIP-179 rules
+4. The vote resolves:
+   - **Proposal invalid** → Proposer's bond goes to the disputer. A new bundle must be proposed.
+   - **Proposal valid** → Disputer's bond goes to the proposer. The bundle is executed.

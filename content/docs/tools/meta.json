@@ -1,0 +1,6 @@
+{
+  "title": "Tools",
+  "root": true,
+  "icon": "Wrench",
+  "pages": ["index", "token-checker", "chain-checker"]
+}

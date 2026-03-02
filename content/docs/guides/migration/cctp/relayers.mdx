@@ -1,0 +1,42 @@
+---
+title: CCTP Migration for Relayers
+description: Relayer changes for handling Native USDC routes after CCTP migration.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+After CCTP migration, deposits will use `inputToken = Native USDC` and `outputToken = Bridged USDC` on some routes. Relayers must handle scenarios where input and output tokens differ.
+
+## Key Changes
+
+### Different Input and Output Tokens
+
+The Across V3 `depositV3` function supports deposits where the `outputToken` differs from the `inputToken`. After CCTP migration, this becomes a production reality — relayers must fill deposits where the user deposited Native USDC but expects Bridged USDC on the destination.
+
+### Token Constraints
+
+| Rule | Detail |
+|------|--------|
+| `inputToken` | Must be natively supported by Across (Native USDC post-migration) |
+| `outputToken` | Can be any ERC-20 on the destination chain |
+| Bridged USDC as input | **Not supported** — cannot serve as `inputToken` |
+
+### Price Computation
+
+Relayers should:
+1. Compute the price of the `outputToken` relative to the `inputToken`
+2. Normalize both amounts to determine fill profitability
+3. Avoid unprofitable fills where the output token is worth more than the input
+
+### Inventory Requirements
+
+Maintain inventory in **both** Bridged and Native USDC on CCTP-enabled chains (Ethereum, Polygon, Optimism, Arbitrum, Base). Some routes will require Bridged USDC for fills while others require Native USDC.
+
+<Callout type="info">
+  While temporarily hardcoding support for the specific USDC-to-Bridged-USDC route is acceptable, implementations should progress toward supporting **arbitrary output tokens** for future cross-chain swap routes.
+</Callout>
+
+## Prerequisites
+
+- Must be upgraded from Across V2 to V3 before CCTP migration
+- Must be familiar with the V3 fee structure (see [V2 to V3 migration](/docs/guides/migration/v2-to-v3))

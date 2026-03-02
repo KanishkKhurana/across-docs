@@ -1,0 +1,75 @@
+---
+title: Migration to CCTP
+description: Transition from Bridged USDC to Native USDC via Circle's Cross-Chain Transfer Protocol.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+Across is transitioning from Bridged USDC to **Native USDC** via Circle's Cross-Chain Transfer Protocol (CCTP). Rather than a simple pass-through, Across uses its relayer network for fast fills while leveraging CCTP for protocol-level rebalancing — delivering faster and cheaper USDC bridging.
+
+## What Changes
+
+| | Before CCTP | After CCTP |
+|---|---|---|
+| **L2 input token** | Bridged USDC only | Native USDC only |
+| **Deposit routes** | Bridged → Bridged | Native → Native, Native → Bridged |
+| **Bridged USDC as input** | Supported | Not supported at API/contract level |
+| **Supported chains** | — | Ethereum, Polygon, Optimism, Arbitrum, Base |
+
+After migration, **Bridged USDC can no longer be used as an `inputToken`**. Users holding Bridged USDC can swap it to Native USDC on the origin chain before bridging.
+
+## Why CCTP?
+
+### Capital Efficiency
+
+When Across proposes sending L2 tokens to the L1 HubPool, those funds are frozen until released after the liveness window. CCTP's faster speed enables more frequent USDC recycling, reducing required LP capital reserves.
+
+### Lower Fees
+
+By minimizing how long USDC remains in canonical bridges, average utilization decreases. This directly reduces the LP fee component of bridge fees.
+
+### Security Alignment
+
+CCTP is Circle's official Native USDC bridge — the issuer itself operates it. Using CCTP does not add additional trusted actors to the Across system, maintaining the canonical bridge security philosophy.
+
+## Migration Process
+
+<Steps>
+  <Step>
+    ### Pause USDC Operations
+    USDC deposits and withdrawals are paused for the target chain.
+  </Step>
+  <Step>
+    ### Return Bridged USDC
+    All Bridged USDC is returned to the HubPool on Ethereum.
+  </Step>
+  <Step>
+    ### Upgrade Routes
+    The HubPool's `PoolRebalanceRoutes` are upgraded from Bridged USDC to Native USDC addresses.
+  </Step>
+  <Step>
+    ### Upgrade Contracts
+    SpokePool and L1 Adapter are upgraded to use CCTP via the `CircleCCTPAdapter`.
+  </Step>
+  <Step>
+    ### Resume Operations
+    Deposits resume. The SpokePool holds only Native USDC from this point forward.
+  </Step>
+</Steps>
+
+<Callout type="info">
+  **CCTP latency**: CCTP completes in minutes, compared to 7 days for optimistic rollup canonical bridges or several hours for ZK-rollups. This is what enables the capital efficiency improvement.
+</Callout>
+
+## Who Is Affected
+
+<Cards>
+  <Card title="Relayers" href="/docs/guides/migration/cctp/relayers">
+    Must handle routes where inputToken and outputToken differ (Native USDC → Bridged USDC).
+  </Card>
+  <Card title="API Users" href="/docs/guides/migration/cctp/api-users">
+    Must update to new API host, use new fee response format, and update token addresses.
+  </Card>
+</Cards>

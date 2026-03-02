@@ -1,0 +1,50 @@
+---
+title: Breaking Changes for API Users
+description: Required parameter changes for deposit transactions after the non-EVM migration.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+API users and integrators must update their deposit transaction construction to include new parameters returned by the `/suggested-fees` endpoint.
+
+<Callout type="warn">
+  Implementation began **January 23, 2025**. Full deprecation of old functions by **April 1, 2025**.
+</Callout>
+
+## Required API Changes
+
+The `/api/suggested-fees` endpoint now returns three parameters that **must** be included in your `deposit` or `depositV3` transactions:
+
+| Parameter | Description |
+|-----------|-------------|
+| `exclusiveRelayer` | Address of the relayer with exclusive fill rights |
+| `exclusivityDeadline` | Unix timestamp when exclusivity expires |
+| `fillDeadline` | Unix timestamp by which the deposit must be filled |
+
+These values must be passed through to the deposit transaction exactly as returned by the API.
+
+```ts title="use-api-params.ts"
+const fees = await fetch(
+  `https://app.across.to/api/suggested-fees?${params}`
+).then((r) => r.json());
+
+// These MUST be included in your deposit transaction
+const { exclusiveRelayer, exclusivityDeadline, fillDeadline } = fees;
+```
+
+## Deprecated Functions
+
+Two deposit functions are being phased out:
+
+| Function | Status |
+|----------|--------|
+| `deposit()` (original version) | Deprecated — removed from contract ABIs |
+| `depositFor()` (original version) | Deprecated — removed from contract ABIs |
+
+<Callout type="warn">
+  These functions are **not guaranteed to work after April 1, 2025**. Migrate to the new `deposit` function (distinct from the deprecated version) which provides all the functionality of `depositV3` with future support for non-EVM chain deposits.
+</Callout>
+
+## Recommended: Use `/deposit/status`
+
+Instead of independently indexing Across events, adopt the `/deposit/status` endpoint for tracking. It has approximately 60-second latency and is simpler to integrate than event indexing.

@@ -1,0 +1,140 @@
+---
+title: Transfer ERC-20 Tokens After Swap
+description: Transfer swapped ERC-20 tokens to a different address on the destination chain.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+This example demonstrates a common post-swap operation: transferring the newly acquired ERC-20 tokens to a different address on the destination chain. The swap lands tokens in the MulticallHandler, which then executes the transfer.
+
+## Action Configuration
+
+The action targets the output token's ERC-20 contract and calls `transfer()`. The amount is dynamically populated with the actual swap output balance.
+
+```json title="action.json"
+{
+  "actions": [
+    {
+      "target": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
+      "functionSignature": "function transfer(address to, uint256 value)",
+      "args": [
+        {
+          "value": "0x718648C8c531F91b528A7757dD2bE813c3940608",
+          "populateDynamically": false
+        },
+        {
+          "value": "0",
+          "populateDynamically": true,
+          "balanceSourceToken": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831"
+        }
+      ],
+      "value": "0",
+      "isNativeTransfer": false,
+      "populateCallValueDynamically": false
+    }
+  ]
+}
+```
+
+### How It Works
+
+- **`target`** — The ERC-20 token contract on the destination chain (USDC on Arbitrum in this example)
+- **`functionSignature`** — Standard ERC-20 `transfer(address, uint256)` function
+- **First arg (recipient)** — Static address where tokens should be sent. `populateDynamically: false` means this value is used as-is
+- **Second arg (amount)** — Set to `populateDynamically: true` with `balanceSourceToken` pointing to the same token contract. At execution time, the MulticallHandler replaces `"0"` with the actual token balance received from the swap
+
+## Full Example
+
+```ts title="transfer-erc20-after-swap.ts"
+import { createWalletClient, createPublicClient, http, parseUnits } from "viem";
+import { arbitrum } from "viem/chains";
+import { privateKeyToAccount } from "viem/accounts";
+
+const account = privateKeyToAccount("0xYOUR_PRIVATE_KEY");
+
+const walletClient = createWalletClient({
+  account,
+  chain: arbitrum,
+  transport: http(),
+});
+
+const publicClient = createPublicClient({
+  chain: arbitrum,
+  transport: http(),
+});
+
+// MulticallHandler on Arbitrum
+const MULTICALL_HANDLER = "0x924a9f036260DdD5808007E1AA95f08eD08aA569";
+// USDC on Arbitrum
+const USDC_ARBITRUM = "0xaf88d065e77c8cC2239327C5EDb3A432268e5831";
+// Final recipient for the tokens
+const FINAL_RECIPIENT = "0x718648C8c531F91b528A7757dD2bE813c3940608";
+
+async function swapAndTransfer() {
+  const params = new URLSearchParams({
+    tradeType: "exactInput",
+    originChainId: "8453",                 // Base
+    destinationChainId: "42161",           // Arbitrum
+    inputToken: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",  // USDC on Base
+    outputToken: USDC_ARBITRUM,
+    amount: parseUnits("100", 6).toString(),
+    depositor: account.address,
+    recipient: MULTICALL_HANDLER,
+  });
+
+  const response = await fetch(
+    `https://app.across.to/api/swap/approval?${params}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        actions: [
+          {
+            target: USDC_ARBITRUM,
+            functionSignature: "function transfer(address to, uint256 value)",
+            args: [
+              { value: FINAL_RECIPIENT, populateDynamically: false },
+              {
+                value: "0",
+                populateDynamically: true,
+                balanceSourceToken: USDC_ARBITRUM,
+              },
+            ],
+            value: "0",
+            isNativeTransfer: false,
+            populateCallValueDynamically: false,
+          },
+        ],
+      }),
+    }
+  );
+
+  const quote = await response.json();
+
+  // Execute approvals
+  if (quote.approvalTxns?.length) {
+    for (const approvalTx of quote.approvalTxns) {
+      const hash = await walletClient.sendTransaction({
+        to: approvalTx.to,
+        data: approvalTx.data,
+      });
+      await publicClient.waitForTransactionReceipt({ hash });
+    }
+  }
+
+  // Execute swap
+  const hash = await walletClient.sendTransaction({
+    to: quote.swapTx.to,
+    data: quote.swapTx.data,
+    value: quote.swapTx.value ? BigInt(quote.swapTx.value) : 0n,
+  });
+
+  console.log("Swap + transfer tx:", hash);
+}
+
+swapAndTransfer();
+```
+
+<Callout type="info">
+  The `recipient` in the query params is the **MulticallHandler** contract, not the final token recipient. The MulticallHandler receives the tokens, then executes your action to transfer them to the actual recipient.
+</Callout>

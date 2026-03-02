@@ -1,0 +1,65 @@
+---
+title: CCTP Migration for API Users
+description: API endpoint changes, new token addresses, and deprecated parameters for CCTP migration.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+After CCTP migration, API users must update token addresses, adopt new endpoint parameters, and migrate to `depositV3()` for routes that require separate input and output tokens.
+
+## API Host
+
+Migrate to the new endpoint: **`app.across.to/api`**. Adopt the new `/suggested-fees` response format which deprecates redundant fields.
+
+## Token Address Changes
+
+When CCTP activates on a chain, Bridged USDC addresses are replaced with **Native USDC addresses** in API responses.
+
+For example, on Polygon:
+- **Before**: Bridged USDC `0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174`
+- **After**: Native USDC (new address in API responses)
+
+New destination routes emerge offering Native USDC as an option alongside existing Bridged USDC routes.
+
+## New Endpoint Parameters
+
+The `/suggested-fees` and `/limits` endpoints now accept:
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `inputToken` | `string` | Token address on origin chain |
+| `outputToken` | `string` | Token address on destination chain |
+
+These replace the legacy `token` parameter (which becomes optional when `inputToken`/`outputToken` are provided).
+
+### Fee Behavior
+
+For the foreseeable future, fees for Native USDC output and Bridged USDC output routes are **equivalent**. However, limits may differ significantly since they're based on relayer capacity for each token.
+
+## Smart Contract Migration
+
+### `deposit()` → `depositV3()`
+
+The legacy `deposit()` function cannot specify separate input and output tokens, making it incompatible with Native-to-Bridged USDC routes. Use `depositV3()` instead:
+
+```solidity
+// depositV3 supports separate inputToken and outputToken
+function depositV3(
+    address depositor,
+    address recipient,
+    address inputToken,   // Native USDC
+    address outputToken,  // Bridged USDC (or Native USDC)
+    uint256 inputAmount,
+    uint256 outputAmount,
+    uint256 destinationChainId,
+    ...
+) external payable;
+```
+
+## Bridged USDC as Origin Token
+
+Routes originating from Bridged USDC **no longer function** at the API and SpokePool contract levels. If users hold Bridged USDC, they must first swap to Native USDC.
+
+<Callout type="info">
+  The `SwapAndBridge` contract facilitates converting Bridged USDC to Native USDC before bridging, with existing audit documentation available.
+</Callout>

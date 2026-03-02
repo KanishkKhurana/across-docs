@@ -1,0 +1,121 @@
+---
+title: Intent Lifecycle in Across
+description: The three phases every crosschain intent goes through — initiation, fill, and settlement.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+Every crosschain intent in Across goes through three phases: **initiation** (user deposits on origin), **fill** (relayer delivers on destination), and **settlement** (protocol verifies and repays). Understanding this lifecycle helps you build reliable integrations and debug issues.
+
+## Phase 1: Initiation
+
+<Steps>
+  <Step>
+    ### `depositV3` Called on Origin SpokePool
+
+    The user (or a contract on behalf of the user) calls `depositV3()` on the origin chain's SpokePool. This can be triggered directly or through the Swap API's generated calldata. The call specifies the destination chain, output token, output amount, recipient, fill deadline, and optional message.
+  </Step>
+  <Step>
+    ### Funds Escrowed
+
+    The user's input tokens are pulled into the SpokePool and escrowed. These funds remain locked until the intent is fulfilled and settled. Escrowing is essential because crosschain intents lack atomicity — the relayer needs assurance that the user's funds exist before fronting capital on the destination.
+  </Step>
+  <Step>
+    ### `V3FundsDeposited` Event Emitted
+
+    The SpokePool emits a `V3FundsDeposited` event containing all intent parameters. Relayers subscribe to this event to discover intents they can fill.
+  </Step>
+</Steps>
+
+## Phase 2: Fill
+
+<Steps>
+  <Step>
+    ### Relayer Calls `fillV3Relay` on Destination
+
+    A relayer calls `fillV3Relay()` on the destination chain's SpokePool, using their own tokens. The relayer specifies which chain they want to receive repayment on — this affects the LP fee (smallest when the relayer accepts tokens on the deposit chain).
+  </Step>
+  <Step>
+    ### Intent Marked as Filled
+
+    The intent transitions to **filled** status on the destination SpokePool. This prevents duplicate fills by other relayers. Each intent can only be filled once.
+  </Step>
+  <Step>
+    ### `FilledV3Relay` Event Emitted
+
+    The SpokePool emits a `FilledV3Relay` event. Use this event (or the `/deposit/status` API) to track when a user's intent has been fulfilled.
+  </Step>
+</Steps>
+
+### Exclusivity
+
+Intents can have an **exclusivity period** where a particular relayer address has the sole right to perform the fill. The `exclusiveRelayer` and `exclusivityDeadline` fields control this. After the deadline passes, any relayer can fill.
+
+## Phase 3: Settlement
+
+Settlement is the process of verifying fills and repaying relayers. It happens in the background — users don't need to wait for it.
+
+<Steps>
+  <Step>
+    ### Block Ranges Determined
+
+    The Dataworker determines the range of blocks to cover on each supported chain for this settlement period.
+  </Step>
+  <Step>
+    ### Fills Validated Against Deposits
+
+    Every `FilledV3Relay` event is matched against its corresponding `V3FundsDeposited` event on the origin chain. The Dataworker verifies that all parameters match.
+  </Step>
+  <Step>
+    ### Aggregated into Payment Lists
+
+    Valid fills are aggregated into consolidated payment lists per chain — which relayers to pay, how much, and on which chain.
+  </Step>
+  <Step>
+    ### Cross-Chain Transfer Instructions
+
+    The Dataworker computes rebalancing instructions — how to move funds between SpokePools via canonical bridges to ensure each pool has sufficient liquidity.
+  </Step>
+  <Step>
+    ### Merkle Tree Proposal
+
+    Everything is organized into merkle trees and proposed to the HubPool on Ethereum with a bond. The proposal enters a challenge period.
+  </Step>
+  <Step>
+    ### Bundle Execution
+
+    After the challenge period passes without dispute, the bundle is finalized. Root bundles are transmitted to SpokePools via canonical bridges.
+  </Step>
+  <Step>
+    ### Payment Execution
+
+    Relayer refunds and rebalancing transfers are executed on each chain. Any eligible party can trigger the execution — it's permissionless.
+  </Step>
+</Steps>
+
+<Callout type="info">
+  Settlement cost is **O(1)**, not **O(N)**. No matter how many fills happen in a period, they're all aggregated into a single bundle. Bundles are proposed every ~1.5 hours minimum.
+</Callout>
+
+## Intent Structure
+
+### Basic Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `recipient` | `address` | Destination address for funds |
+| `inputToken` | `address` | Token deposited on origin chain |
+| `inputAmount` | `uint256` | Amount deposited |
+| `outputToken` | `address` | Token to receive on destination |
+| `outputAmount` | `uint256` | Amount to receive |
+| `destinationChainId` | `uint256` | Destination chain ID |
+| `fillDeadline` | `uint32` | Unix timestamp — deadline for fill |
+| `message` | `bytes` | Custom calldata for contract recipients (enables [embedded actions](/docs/introduction/embedded-actions)) |
+
+### Advanced Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `exclusiveRelayer` | `address` | Relayer with exclusive fill rights during the exclusivity period |
+| `exclusivityDeadline` | `uint32` | Unix timestamp — when exclusivity expires |

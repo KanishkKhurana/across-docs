@@ -1,0 +1,116 @@
+---
+title: Simple Native ETH Transfer
+description: Send native ETH to an address after a crosschain swap.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+This is the simplest embedded action — swap tokens crosschain to ETH, then transfer the ETH to a recipient address. Setting `isNativeTransfer: true` tells the MulticallHandler this is a plain value transfer with no contract function call.
+
+## Action Configuration
+
+```json title="action.json"
+{
+  "actions": [
+    {
+      "target": "0xA4d353BBc130cbeF1811f27ac70989F9d568CeAB",
+      "functionSignature": "",
+      "args": [],
+      "value": "0",
+      "isNativeTransfer": true,
+      "populateCallValueDynamically": true
+    }
+  ]
+}
+```
+
+### How It Works
+
+- **`target`** — The address that receives the ETH
+- **`functionSignature`** — Must be an empty string `""` for native transfers
+- **`args`** — Must be an empty array `[]` for native transfers
+- **`isNativeTransfer: true`** — Signals a simple ETH transfer, not a contract call
+- **`populateCallValueDynamically: true`** — The entire ETH balance from the swap is sent to the `target` address
+
+<Callout type="info">
+  When both `isNativeTransfer` and `populateCallValueDynamically` are `true`, the entire ETH balance from the swap is sent directly to the `target` address. The actual amount is determined at execution time.
+</Callout>
+
+## Full Example
+
+```ts title="swap-and-transfer-eth.ts"
+import { createWalletClient, createPublicClient, http, parseUnits } from "viem";
+import { arbitrum } from "viem/chains";
+import { privateKeyToAccount } from "viem/accounts";
+
+const account = privateKeyToAccount("0xYOUR_PRIVATE_KEY");
+
+const walletClient = createWalletClient({
+  account,
+  chain: arbitrum,
+  transport: http(),
+});
+
+const publicClient = createPublicClient({
+  chain: arbitrum,
+  transport: http(),
+});
+
+const MULTICALL_HANDLER_ETH = "0x924a9f036260DdD5808007E1AA95f08eD08aA569";
+const ETH_RECIPIENT = "0xA4d353BBc130cbeF1811f27ac70989F9d568CeAB";
+
+async function swapAndTransferEth() {
+  const params = new URLSearchParams({
+    tradeType: "exactInput",
+    originChainId: "42161",                // Arbitrum
+    destinationChainId: "1",               // Ethereum
+    inputToken: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",  // USDC on Arbitrum
+    outputToken: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2", // WETH on Ethereum
+    amount: parseUnits("200", 6).toString(),
+    depositor: account.address,
+    recipient: MULTICALL_HANDLER_ETH,
+  });
+
+  const response = await fetch(
+    `https://app.across.to/api/swap/approval?${params}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        actions: [
+          {
+            target: ETH_RECIPIENT,
+            functionSignature: "",
+            args: [],
+            value: "0",
+            isNativeTransfer: true,
+            populateCallValueDynamically: true,
+          },
+        ],
+      }),
+    }
+  );
+
+  const quote = await response.json();
+
+  if (quote.approvalTxns?.length) {
+    for (const approvalTx of quote.approvalTxns) {
+      const hash = await walletClient.sendTransaction({
+        to: approvalTx.to,
+        data: approvalTx.data,
+      });
+      await publicClient.waitForTransactionReceipt({ hash });
+    }
+  }
+
+  const hash = await walletClient.sendTransaction({
+    to: quote.swapTx.to,
+    data: quote.swapTx.data,
+    value: quote.swapTx.value ? BigInt(quote.swapTx.value) : 0n,
+  });
+
+  console.log("Swap + ETH transfer tx:", hash);
+}
+
+swapAndTransferEth();
+```

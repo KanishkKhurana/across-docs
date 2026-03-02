@@ -1,0 +1,63 @@
+---
+title: Non-EVM and Prefills Migration
+description: Support non-EVM chains and deterministic relay hashes for prefills.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+This migration introduces two major features: **non-EVM chain support** (extending Across beyond EVM-only) and **prefills** (deterministic relay hashes enabling fills that occur simultaneously with or before deposits).
+
+<Callout type="warn">
+  Contract migration occurred **January 23, 2025**. Breaking changes took effect on that date.
+</Callout>
+
+## What Changed
+
+### Non-EVM Expansion
+
+Multiple SpokePool functions and events now use `bytes32` addresses instead of `address`, facilitating cross-compatibility between EVM and non-EVM deployments (like Solana).
+
+### Prefills
+
+A new `unsafeDeposit` function enables **prefills** — fills that occur simultaneously with or before deposits. Deterministic relay hashes ensure deposit inclusion timing on origin chains doesn't affect destination fill correctness.
+
+### Event Renaming
+
+Four SpokePool events are renamed and updated:
+
+| Old Event | New Event |
+|-----------|-----------|
+| `V3FundsDeposited` | `FundsDeposited` |
+| `RequestedSpeedUpV3Deposit` | `RequestedSpeedUpDeposit` |
+| `FilledV3Relay` | `FilledRelay` |
+| `RequestedV3SlowFill` | `RequestedSlowFill` |
+
+All replacement events convert `address` types to `bytes32` and change `depositId` from `uint32` to `uint256`.
+
+### Repayment Flexibility
+
+The new `fillRelay` function allows relayers to designate a **repayment address** different from the fill-executing address.
+
+## Who Is Affected
+
+<Cards>
+  <Card title="Indexers" href="/docs/guides/migration/non-evm/indexers">
+    Must update to track 4 new SpokePool events. Old events are deprecated.
+  </Card>
+  <Card title="API Users" href="/docs/guides/migration/non-evm/api-users">
+    Must include exclusiveRelayer, exclusivityDeadline, and fillDeadline from API responses in deposit transactions.
+  </Card>
+  <Card title="Relayers" href="/docs/guides/migration/non-evm/relayers">
+    Must handle new event structures and migrate to fillRelay.
+  </Card>
+  <Card title="Testnet" href="/docs/guides/migration/non-evm/testnet">
+    Testnet environment with sample deposits and fills for migration testing.
+  </Card>
+</Cards>
+
+## Recommended (Non-Breaking) Changes
+
+- Adopt `/deposit/status` endpoint instead of independently indexing Across events (~60 second latency)
+- Use the new `deposit` method (not `depositV3`) for future non-EVM destination support
+- Relayers: migrate toward `fillRelay` for repayment address selection and non-EVM fill capabilities

@@ -1,0 +1,97 @@
+---
+title: Security Model and Verification
+description: How Across secures crosschain transfers through optimistic verification, bonds, and UMA's oracle.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+Across uses **optimistic verification** to secure crosschain transfers. Rather than requiring every transaction to be proven before execution, the protocol assumes proposals are valid unless challenged — and provides strong economic incentives to catch any invalid proposals.
+
+## Core Security Framework
+
+The security model rests on two foundations:
+
+1. **Across smart contracts** — The on-chain rules governing deposits, fills, and settlement across all supported chains
+2. **UMIP-157 and UMIP-179** — UMA Improvement Proposals that precisely define the constraints and rules for bundle construction and verification
+
+All actors in the system — relayers, dataworkers, and validators — must behave in accordance with these rules. Any deviation can be detected and disputed.
+
+## How Optimistic Verification Works
+
+<Steps>
+  <Step>
+    ### Bundle Proposal
+
+    The dataworker aggregates fills from all chains into a **root bundle** — a set of merkle roots encoding relayer refunds, token rebalancing instructions, and slow fill data. The dataworker proposes this bundle to the HubPool on Ethereum and posts a **bond** (denominated in ABT, the Across Bond Token).
+  </Step>
+  <Step>
+    ### Challenge Period
+
+    After proposal, the bundle enters a challenge period. During this window, anyone can inspect the proposed bundle and verify it against the on-chain data.
+  </Step>
+  <Step>
+    ### Dispute or Finalization
+
+    - **No dispute** — The bundle is accepted as valid and executed. The dataworker's bond is returned.
+    - **Dispute filed** — A challenger posts their own bond and the dispute is escalated to UMA's Data Verification Mechanism (DVM) for resolution.
+  </Step>
+  <Step>
+    ### DVM Resolution (if disputed)
+
+    UMA token holders vote on whether the proposed bundle was valid. The losing party forfeits their bond to the winning party.
+  </Step>
+</Steps>
+
+## The 1-of-N Trust Assumption
+
+The system only requires **a single honest actor** to dispute invalid proposals to remain secure. This is fundamentally different from validator-set models that require a majority or supermajority to be honest.
+
+In practice, multiple independent parties monitor proposals:
+- The Across dataworker itself validates before proposing
+- Independent validators run verification software
+- Community members can monitor and dispute
+
+<Callout type="info">
+  The economic cost of attacking Across is the bond posted with each proposal. If an invalid proposal is disputed and the DVM votes against it, the proposer loses their bond. This creates a strong deterrent against malicious proposals.
+</Callout>
+
+## Bonds and Economic Security
+
+### Across Bond Token (ABT)
+
+The Across Bond Token is a custom ERC-20 that functions similarly to WETH. Users deposit Ether to mint ABT and can redeem it for the underlying Ether at any time.
+
+ABT has an additional property: it **restricts which addresses may propose root bundles** to the HubPool. This adds a permissioning layer on top of the economic bond requirement.
+
+### Bond Requirements
+
+| Action | Bond Required |
+|--------|--------------|
+| Proposing a root bundle | ~0.45 ABT |
+| Disputing a root bundle | ~0.45 ABT |
+
+The bond amount is configurable via the HubPool contract's `bondAmount()` function.
+
+## What Root Bundles Contain
+
+Root bundles instruct the Across system on how to transfer funds between smart contracts on different chains. Each bundle contains:
+
+| Component | Purpose |
+|-----------|---------|
+| **Relayer refund root** | Merkle root of all relayer repayments for the period |
+| **Rebalance root** | Instructions for moving tokens between SpokePools via canonical bridges |
+| **Slow fill root** | Instructions for fulfilling deposits that weren't filled by relayers |
+| **Block ranges** | The range of blocks on each chain covered by this bundle |
+
+## Learn More
+
+<Cards>
+  <Card title="Disputing Root Bundles" href="/docs/introduction/security/disputing-root-bundles">
+    How to challenge an invalid proposal — manually or with automated tooling.
+  </Card>
+  <Card title="Validating Root Bundles" href="/docs/introduction/security/validating-root-bundles">
+    How root bundles are validated and what the verification process checks.
+  </Card>
+</Cards>

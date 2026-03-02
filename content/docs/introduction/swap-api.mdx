@@ -1,0 +1,281 @@
+---
+title: Introduction to Swap API
+description: The unified entry point for all crosschain operations on Across.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
+
+The Swap API is Across's **single entry point** for all crosschain operations — bridging, swapping, and embedded actions. It abstracts the three settlement mechanisms (intents, CCTP, OFT) behind one unified interface at `/swap/approval`.
+
+## Trade Types
+
+The `tradeType` parameter controls how the swap amount is interpreted.
+
+<Tabs items={["exactInput", "minOutput", "exactOutput"]}>
+  <Tab value="exactInput">
+    **Spend exactly this amount, receive whatever the market gives.**
+
+    Use when the user specifies how much they want to send. The output amount varies based on fees, slippage, and exchange rates.
+
+    ```
+    tradeType=exactInput&amount=1000000000
+    ```
+  </Tab>
+  <Tab value="minOutput">
+    **Receive at least this amount, spend whatever is needed.**
+
+    Use when the user has a minimum acceptable output. The API calculates the required input. This is the recommended default for most integrations.
+
+    ```
+    tradeType=minOutput&amount=1000000000
+    ```
+  </Tab>
+  <Tab value="exactOutput">
+    **Receive exactly this amount.**
+
+    Use when the user needs a precise output. Stricter than `minOutput` — the API will fail if the exact amount can't be delivered. Set `strictTradeType=true` to enforce.
+
+    ```
+    tradeType=exactOutput&amount=1000000000&strictTradeType=true
+    ```
+  </Tab>
+</Tabs>
+
+## Base URLs
+
+| Environment | Base URL |
+|-------------|----------|
+| Production | `https://app.across.to/api` |
+| Testnet | `https://testnet.across.to/api` |
+
+<Callout type="info">
+  Testnet fills take ~1 minute vs ~2 seconds on mainnet. Use a small test deposit (~$10) when developing.
+</Callout>
+
+## Required Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `tradeType` | `string` | `exactInput`, `minOutput`, or `exactOutput` |
+| `amount` | `string` | Amount in smallest unit (e.g., `1000000` = 1 USDC) |
+| `inputToken` | `string` | Token address on origin chain |
+| `outputToken` | `string` | Token address on destination chain |
+| `originChainId` | `number` | Origin chain ID |
+| `destinationChainId` | `number` | Destination chain ID |
+| `depositor` | `string` | Wallet address initiating the transfer |
+
+## Optional Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `recipient` | `string` | Destination address (defaults to `depositor`) |
+| `integratorId` | `string` | 2-byte hex identifier for your integration |
+| `slippage` | `string` | `"auto"` or a value between 0-1 (default: auto) |
+| `refundAddress` | `string` | Address for refunds if fill expires |
+| `refundOnOrigin` | `boolean` | Refund on origin chain instead of destination |
+| `appFee` | `string` | Integrator fee as decimal 0-1 (e.g., `"0.01"` = 1%) |
+| `appFeeRecipient` | `string` | Address to receive integrator fees |
+| `skipOriginTxEstimation` | `boolean` | Skip gas estimation for the origin transaction |
+| `strictTradeType` | `boolean` | Fail if exact trade type can't be satisfied |
+| `excludeSources` | `string` | Comma-separated swap sources to exclude |
+| `includeSources` | `string` | Comma-separated swap sources to include exclusively |
+
+## Response Structure
+
+The `/swap/approval` response contains everything needed to execute the crosschain transfer.
+
+```json title="response-structure.json"
+{
+  "crossSwapType": "bridgeableToBridgeable",
+  "checks": {
+    "allowance": { "token": "0x...", "spender": "0x...", "actual": "0", "expected": "1000000" },
+    "balance": { "token": "0x...", "actual": "5000000", "expected": "1000000" }
+  },
+  "approvalTxns": [
+    { "chainId": 42161, "to": "0x...", "data": "0x..." }
+  ],
+  "steps": {
+    "bridge": { "inputAmount": "1000000", "outputAmount": "998000" }
+  },
+  "fees": {
+    "total": "2000",
+    "totalMax": "3000",
+    "originGas": "50000"
+  },
+  "swapTx": {
+    "simulationSuccess": true,
+    "chainId": 42161,
+    "to": "0x...",
+    "data": "0x...",
+    "value": "0",
+    "gas": "250000",
+    "maxFeePerGas": "100000000",
+    "maxPriorityFeePerGas": "1500000"
+  },
+  "expectedFillTime": 2,
+  "quoteExpiryTimestamp": 1700000000
+}
+```
+
+**Key fields:**
+- **`crossSwapType`** — The routing path: `bridgeableToBridgeable`, `bridgeableToBridgeableIndirect`, `bridgeableToAny`, `anyToBridgeable`, or `anyToAny`
+- **`checks`** — Current allowance and balance status for the depositor
+- **`approvalTxns`** — Token approval transactions to execute before the swap (may be empty)
+- **`swapTx`** — The main swap transaction calldata
+- **`expectedFillTime`** — Estimated seconds until the destination fill
+- **`quoteExpiryTimestamp`** — Unix timestamp when this quote expires
+
+## Full Integration Example
+
+<Tabs items={["viem (TypeScript)", "ethers.js"]}>
+  <Tab value="viem (TypeScript)">
+    ```ts title="swap-viem.ts"
+    import { createWalletClient, createPublicClient, http, parseUnits } from "viem";
+    import { arbitrum } from "viem/chains";
+    import { privateKeyToAccount } from "viem/accounts";
+
+    const account = privateKeyToAccount("0xYOUR_PRIVATE_KEY");
+
+    const walletClient = createWalletClient({
+      account,
+      chain: arbitrum,
+      transport: http(),
+    });
+
+    const publicClient = createPublicClient({
+      chain: arbitrum,
+      transport: http(),
+    });
+
+    async function executeSwap() {
+      // 1. Get quote
+      const params = new URLSearchParams({
+        tradeType: "minOutput",
+        originChainId: "42161",
+        destinationChainId: "8453",
+        inputToken: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",  // USDC on Arbitrum
+        outputToken: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", // USDC on Base
+        amount: parseUnits("100", 6).toString(),                    // 100 USDC
+        depositor: account.address,
+        integratorId: "0xdead",
+      });
+
+      const res = await fetch(
+        `https://app.across.to/api/swap/approval?${params}`
+      );
+      const quote = await res.json();
+
+      if (!quote.swapTx) {
+        throw new Error(`Quote failed: ${JSON.stringify(quote)}`);
+      }
+
+      // 2. Execute approval transactions
+      if (quote.approvalTxns?.length) {
+        for (const approvalTx of quote.approvalTxns) {
+          const hash = await walletClient.sendTransaction({
+            to: approvalTx.to,
+            data: approvalTx.data,
+          });
+          await publicClient.waitForTransactionReceipt({ hash });
+          console.log("Approval confirmed:", hash);
+        }
+      }
+
+      // 3. Execute swap
+      const hash = await walletClient.sendTransaction({
+        to: quote.swapTx.to,
+        data: quote.swapTx.data,
+        value: quote.swapTx.value ? BigInt(quote.swapTx.value) : 0n,
+        gas: quote.swapTx.gas ? BigInt(quote.swapTx.gas) : undefined,
+      });
+
+      console.log("Swap tx:", hash);
+      console.log("Expected fill:", quote.expectedFillTime, "seconds");
+
+      return hash;
+    }
+
+    executeSwap();
+    ```
+  </Tab>
+  <Tab value="ethers.js">
+    ```ts title="swap-ethers.ts"
+    import { ethers } from "ethers";
+
+    const provider = new ethers.JsonRpcProvider("https://arb1.arbitrum.io/rpc");
+    const wallet = new ethers.Wallet("0xYOUR_PRIVATE_KEY", provider);
+
+    async function executeSwap() {
+      // 1. Get quote
+      const params = new URLSearchParams({
+        tradeType: "minOutput",
+        originChainId: "42161",
+        destinationChainId: "8453",
+        inputToken: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
+        outputToken: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+        amount: ethers.parseUnits("100", 6).toString(),
+        depositor: wallet.address,
+        integratorId: "0xdead",
+      });
+
+      const res = await fetch(
+        `https://app.across.to/api/swap/approval?${params}`
+      );
+      const quote = await res.json();
+
+      if (!quote.swapTx) {
+        throw new Error(`Quote failed: ${JSON.stringify(quote)}`);
+      }
+
+      // 2. Execute approval transactions
+      if (quote.approvalTxns?.length) {
+        for (const approvalTx of quote.approvalTxns) {
+          const tx = await wallet.sendTransaction({
+            to: approvalTx.to,
+            data: approvalTx.data,
+          });
+          await tx.wait();
+          console.log("Approval confirmed:", tx.hash);
+        }
+      }
+
+      // 3. Execute swap
+      const tx = await wallet.sendTransaction({
+        to: quote.swapTx.to,
+        data: quote.swapTx.data,
+        value: quote.swapTx.value || 0,
+      });
+
+      console.log("Swap tx:", tx.hash);
+      console.log("Expected fill:", quote.expectedFillTime, "seconds");
+
+      return tx.hash;
+    }
+
+    executeSwap();
+    ```
+  </Tab>
+</Tabs>
+
+## Helper Endpoints
+
+These endpoints help you discover supported routes, tokens, and fee estimates before calling `/swap/approval`.
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/swap/chains` | GET | List all supported chains |
+| `/swap/tokens` | GET | List all supported tokens per chain |
+| `/swap/sources` | GET | List swap providers (DEX sources) |
+| `/suggested-fees` | GET | Get fee breakdown for a specific route |
+| `/limits` | GET | Get transfer limits (min, max, instant, short-delay) |
+| `/available-routes` | GET | Get all available origin → destination routes |
+
+<Callout type="warn">
+  **Integrator ID required for production.** You must obtain a 2-byte hex integrator ID (e.g., `0xdead`) before launching in production. Apply via the [Across integrator form](https://across.to). Without it, your requests may be rate-limited or rejected.
+</Callout>
+
+<Callout type="info">
+  **Do not cache** `/swap/approval` or `/suggested-fees` responses. Quotes expire quickly and fees change with market conditions. The only stateful endpoint is `/deposit/status`.
+</Callout>

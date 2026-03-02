@@ -1,0 +1,51 @@
+---
+title: Breaking Changes for Relayers
+description: Updated events and fill functions for relayers supporting non-EVM chains.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+Relayers must update their event subscriptions and fill functions to support the new event formats introduced in the non-EVM migration.
+
+<Callout type="warn">
+  Changes took effect **January 23, 2025**. Query both old and new event types during the transition.
+</Callout>
+
+## Event Changes
+
+Three events that relayers depend on are being deprecated and replaced:
+
+| Deprecated Event | Replacement Event |
+|-----------------|-------------------|
+| `V3FundsDeposited` | `FundsDeposited` |
+| `RequestedSpeedUpV3Deposit` | `RequestedSpeedUpDeposit` |
+| `FilledV3Relay` | `FilledRelay` |
+
+### Key Differences
+
+- **Address types**: All `address` fields → `bytes32` to support non-EVM chains
+- **Gas optimization**: `FilledRelay` contains only the `messageHash` instead of the full message
+- **Deposit ID**: `uint32` → `uint256`
+
+## Migration Strategy
+
+Query **both** old and new event types to ensure a smooth transition. Each SpokePool upgrades at a different time, but the protocol guarantees no single fill or deposit will emit duplicate events.
+
+```ts title="dual-event-monitoring.ts"
+// Monitor both old and new deposit events
+// Old: V3FundsDeposited (address types, uint32 depositId)
+// New: FundsDeposited (bytes32 types, uint256 depositId)
+
+// Process whichever event you receive — they won't overlap
+```
+
+## New `fillRelay` Function
+
+The new `fillRelay` function replaces `fillV3Relay` and adds:
+
+- **Repayment address selection** — Relayers can designate a repayment address different from the fill-executing address
+- **Non-EVM fill capabilities** — Supports filling on non-EVM chains
+
+<Callout type="info">
+  Migrating to `fillRelay` is **recommended** but not immediately required. `fillV3Relay` continues to work during the transition period. However, `fillRelay` is required for Solana and future non-EVM chain fills.
+</Callout>

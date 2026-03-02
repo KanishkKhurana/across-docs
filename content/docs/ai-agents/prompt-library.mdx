@@ -1,0 +1,205 @@
+---
+title: Prompt Library
+description: Curated prompts for AI agents working with the Across Protocol — organized by task category.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
+
+Tested prompts organized by task category. Each prompt shows the natural-language instruction, the steps an agent should take, and the API endpoints involved.
+
+<Callout type="info">
+  These prompts work best when the agent has the [Across skill installed](/docs/ai-agents) or access to the [machine-readable documentation](/docs/ai-agents/llms-txt).
+</Callout>
+
+<Tabs items={["Discovery", "Quoting", "Execution", "Tracking", "DeFi Composition"]}>
+  <Tab value="Discovery">
+    ### What chains does Across support?
+
+    **Prompt:**
+    ```
+    What chains does Across support? List them with their chain IDs.
+    ```
+
+    **Agent steps:**
+    1. Call `GET /swap/chains`
+    2. Format the response as a table of chain names and IDs
+
+    **Endpoint:** `GET https://app.across.to/api/swap/chains`
+
+    ---
+
+    ### What tokens can I bridge from Arbitrum?
+
+    **Prompt:**
+    ```
+    What tokens can I bridge from Arbitrum using Across?
+    ```
+
+    **Agent steps:**
+    1. Call `GET /swap/chains` to find Arbitrum's chain ID (42161)
+    2. Call `GET /swap/tokens?chainId=42161`
+    3. List all tokens with their symbols, addresses, and decimals
+
+    **Endpoints:** `GET /swap/chains`, `GET /swap/tokens?chainId=42161`
+
+    ---
+
+    ### What are the limits for USDC?
+
+    **Prompt:**
+    ```
+    What are the transfer limits for bridging USDC from Arbitrum to Base?
+    ```
+
+    **Agent steps:**
+    1. Look up USDC addresses on both chains via `/swap/tokens`
+    2. Call `GET /swap/limits` with the token addresses and chain IDs
+    3. Report minimum and maximum transfer amounts
+
+    **Endpoints:** `GET /swap/tokens`, `GET /swap/limits?originChainId=42161&destinationChainId=8453&inputToken=...&outputToken=...`
+  </Tab>
+
+  <Tab value="Quoting">
+    ### Get a quote to bridge USDC
+
+    **Prompt:**
+    ```
+    Get a quote to bridge 100 USDC from Arbitrum to Base. Show me the fees and estimated fill time.
+    ```
+
+    **Agent steps:**
+    1. Look up chain IDs for Arbitrum (42161) and Base (8453)
+    2. Look up USDC addresses on both chains via `/swap/tokens`
+    3. Call `GET /swap/approval` with `amount=100000000` (100 USDC, 6 decimals) and `tradeType=minOutput`
+    4. Extract `fees`, `expectedFillTime`, and output amount from the response
+
+    **Endpoint:** `GET /swap/approval?originChainId=42161&destinationChainId=8453&inputToken=...&outputToken=...&amount=100000000&depositor=...&tradeType=minOutput`
+
+    ---
+
+    ### Compare fees across routes
+
+    **Prompt:**
+    ```
+    Compare the fees for bridging 1000 USDC from Ethereum to Arbitrum vs Ethereum to Base.
+    ```
+
+    **Agent steps:**
+    1. Look up USDC addresses on Ethereum, Arbitrum, and Base
+    2. Call `/swap/approval` for Ethereum→Arbitrum with `amount=1000000000`
+    3. Call `/swap/approval` for Ethereum→Base with `amount=1000000000`
+    4. Compare `fees.totalFeeUsd` and `expectedFillTime` for both routes
+
+    **Endpoint:** Two calls to `GET /swap/approval` with different `destinationChainId` values
+  </Tab>
+
+  <Tab value="Execution">
+    ### Bridge 100 USDC from Arbitrum to Base
+
+    **Prompt:**
+    ```
+    Bridge 100 USDC from Arbitrum to Base using my connected wallet.
+    ```
+
+    **Agent steps:**
+    1. Call `GET /swap/chains` to confirm both chains are supported
+    2. Call `GET /swap/tokens?chainId=42161` and `GET /swap/tokens?chainId=8453` to find USDC addresses
+    3. Call `GET /swap/approval` with the route parameters and `depositor` set to the wallet address
+    4. Check `checks.balance` and `checks.allowance` on the response
+    5. Execute each transaction in `approvalTxns` (if any)
+    6. Execute `swapTx` — this is the bridge deposit
+
+    **Endpoints:** `/swap/chains`, `/swap/tokens`, `/swap/approval`
+
+    ---
+
+    ### Handle approvals and execute
+
+    **Prompt:**
+    ```
+    I want to bridge 50 USDT from Ethereum to Optimism. Handle token approvals automatically.
+    ```
+
+    **Agent steps:**
+    1. Discover chains and look up USDT addresses
+    2. Get a quote via `/swap/approval`
+    3. Check if `approvalTxns` is non-empty — if so, send each approval transaction and wait for confirmation
+    4. Send the `swapTx` transaction
+    5. Return the transaction hash and expected fill time
+
+    **Endpoints:** `/swap/chains`, `/swap/tokens`, `/swap/approval`
+  </Tab>
+
+  <Tab value="Tracking">
+    ### Check the status of a deposit
+
+    **Prompt:**
+    ```
+    Check the status of my bridge deposit with tx hash 0xabc123... on Arbitrum.
+    ```
+
+    **Agent steps:**
+    1. Call `GET /deposit/status?originChainId=42161&depositTxHash=0xabc123...`
+    2. Report the status: `pending`, `filled`, or `expired`
+    3. If filled, show the fill transaction hash and destination chain
+
+    **Endpoint:** `GET /deposit/status?originChainId=42161&depositTxHash=0xabc123...`
+
+    ---
+
+    ### Poll until filled
+
+    **Prompt:**
+    ```
+    Bridge 100 USDC from Arbitrum to Base and wait until the transfer is complete.
+    ```
+
+    **Agent steps:**
+    1. Execute the full bridge flow (discover → quote → approve → execute)
+    2. After the deposit tx confirms, poll `GET /deposit/status` every 2 seconds
+    3. Continue polling until status is `filled`
+    4. Report the fill transaction hash and total time elapsed
+
+    **Endpoints:** `/swap/chains`, `/swap/tokens`, `/swap/approval`, `/deposit/status`
+  </Tab>
+
+  <Tab value="DeFi Composition">
+    ### Bridge USDC and deposit into Aave
+
+    **Prompt:**
+    ```
+    Bridge 100 USDC from Arbitrum to Ethereum, swap to ETH, and deposit into Aave's lending pool.
+    ```
+
+    **Agent steps:**
+    1. Discover chains and look up USDC (Arbitrum) and WETH (Ethereum) addresses
+    2. Build an embedded action targeting Aave's WETH Gateway `depositETH()` function
+    3. Call `POST /swap/approval` with the `actions` array in the body and `recipient` set to the MulticallHandler contract
+    4. Execute approvals, then the swap transaction
+    5. The user receives an aWETH position on Ethereum
+
+    **Endpoints:** `POST /swap/approval` with `actions` body
+
+    <Callout type="warn">
+      Embedded actions require setting the `recipient` to the MulticallHandler contract address, not the user's wallet. The MulticallHandler receives the bridged tokens and executes the action on behalf of the user.
+    </Callout>
+
+    ---
+
+    ### Bridge ETH and add HubPool liquidity
+
+    **Prompt:**
+    ```
+    Bridge ETH from Arbitrum to Ethereum and add it as liquidity to the Across HubPool.
+    ```
+
+    **Agent steps:**
+    1. Look up the ETH/WETH addresses on both chains
+    2. Build an embedded action targeting the HubPool's `addLiquidity()` function
+    3. Call `POST /swap/approval` with the action and MulticallHandler as recipient
+    4. Execute the transaction — the user receives LP tokens on Ethereum
+
+    **Endpoints:** `POST /swap/approval` with `actions` body
+  </Tab>
+</Tabs>
