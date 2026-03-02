@@ -4902,73 +4902,70 @@ paths:
                               maxSwapImpact:
                                 type: object
                                 description: Worst-case swap impact considering slippage.
-                                x-gitbook-description-html: >-
-                                  <p>Worst-case swap impact considering
-                                  slippage.</p>
-                              properties:
-                                amount:
-                                  type: string
-                                  example: '4910'
-                                amountUsd:
-                                  type: string
-                                  example: '0.004909993813626033'
-                                pct:
-                                  type: string
-                                  example: '4910951449158618'
-                                token:
-                                  type: object
-                                  properties:
-                                    decimals:
-                                      type: integer
-                                      example: 6
-                                    symbol:
-                                      type: string
-                                      example: USDC
-                                    address:
-                                      type: string
-                                      example: >-
-                                        0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85
-                                    name:
-                                      type: string
-                                      example: USD Coin
-                                    chainId:
-                                      type: integer
-                                      example: 10
+                                properties:
+                                  amount:
+                                    type: string
+                                    example: '4910'
+                                  amountUsd:
+                                    type: string
+                                    example: '0.004909993813626033'
+                                  pct:
+                                    type: string
+                                    example: '4910951449158618'
+                                  token:
+                                    type: object
+                                    properties:
+                                      decimals:
+                                        type: integer
+                                        example: 6
+                                      symbol:
+                                        type: string
+                                        example: USDC
+                                      address:
+                                        type: string
+                                        example: >-
+                                          0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85
+                                      name:
+                                        type: string
+                                        example: USD Coin
+                                      chainId:
+                                        type: integer
+                                        example: 10
                                 x-gitbook-description-html: >-
                                   <p>Worst-case swap impact considering
                                   slippage.</p>
                               app:
                                 type: object
                                 description: Maximum application fee portion.
-                                properties: null
-                                amount:
-                                  type: string
-                                  example: '0'
-                                amountUsd:
-                                  type: string
-                                  example: '0.0'
-                                pct:
-                                  type: string
-                                  example: '0'
-                                token:
-                                  type: object
-                                  properties:
-                                    decimals:
-                                      type: integer
-                                      example: 18
-                                    symbol:
-                                      type: string
-                                      example: WETH
-                                    address:
-                                      type: string
-                                      example: >-
-                                        0x82aF49447D8a07e3bd95BD0d56f35241523fBab1
-                                    name:
-                                      type: string
-                                      example: Wrapped Ether
-                                    chainId:
-                                      type: integer
-                                      example: 42161
+                                properties:
+                                  amount:
+                                    type: string
+                                    example: '0'
+                                  amountUsd:
+                                    type: string
+                                    example: '0.0'
+                                  pct:
+                                    type: string
+                                    example: '0'
+                                  token:
+                                    type: object
+                                    properties:
+                                      decimals:
+                                        type: integer
+                                        example: 18
+                                      symbol:
+                                        type: string
+                                        example: WETH
+                                      address:
+                                        type: string
+                                        example: >-
+                                          0x82aF49447D8a07e3bd95BD0d56f35241523fBab1
+                                      name:
+                                        type: string
+                                        example: Wrapped Ether
+                                      chainId:
+                                        type: integer
+                                        example: 42161
                                 x-gitbook-description-html: <p>Maximum application fee portion.</p>
                               bridge:
                                 type: object
