@@ -1,6 +1,13 @@
+import type { Metadata } from 'next';
 import { RootProvider } from 'fumadocs-ui/provider/next';
 import './global.css';
 import { Inter, Barlow } from 'next/font/google';
+
+export const metadata: Metadata = {
+  icons: {
+    icon: '/across-logo.svg',
+  },
+};
 
 const inter = Inter({
   subsets: ['latin'],
