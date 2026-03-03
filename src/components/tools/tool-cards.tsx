@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Activity, Coins, Link as LinkIcon } from 'lucide-react';
+import { Activity, Coins, Link as LinkIcon, Blocks } from 'lucide-react';
 
 const tools = [
   {
@@ -24,6 +24,13 @@ const tools = [
       'Check if Across supports your chain by ID or name.',
     href: '/docs/tools/chain-checker',
     icon: LinkIcon,
+  },
+  {
+    title: 'Transaction Builder',
+    description:
+      'Build crosschain swap + action requests for the Across API.',
+    href: '/docs/tools/transaction-builder',
+    icon: Blocks,
   },
 ];
 

@@ -4,6 +4,7 @@ import { TokenChecker } from '@/components/tools/token-checker';
 import { ChainChecker } from '@/components/tools/chain-checker';
 import { StatusTracker } from '@/components/tools/status-tracker';
 import { ToolCards } from '@/components/tools/tool-cards';
+import { TransactionBuilder } from '@/components/tools/transaction-builder';
 import { APIPage } from '@/components/api-page';
 
 export function getMDXComponents(components?: MDXComponents): MDXComponents {
@@ -13,6 +14,7 @@ export function getMDXComponents(components?: MDXComponents): MDXComponents {
     ChainChecker,
     StatusTracker,
     ToolCards,
+    TransactionBuilder,
     APIPage,
     ...components,
   };
