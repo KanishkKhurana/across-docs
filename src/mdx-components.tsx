@@ -2,6 +2,8 @@ import defaultMdxComponents from 'fumadocs-ui/mdx';
 import type { MDXComponents } from 'mdx/types';
 import { TokenChecker } from '@/components/tools/token-checker';
 import { ChainChecker } from '@/components/tools/chain-checker';
+import { StatusTracker } from '@/components/tools/status-tracker';
+import { ToolCards } from '@/components/tools/tool-cards';
 import { APIPage } from '@/components/api-page';
 
 export function getMDXComponents(components?: MDXComponents): MDXComponents {
@@ -9,6 +11,8 @@ export function getMDXComponents(components?: MDXComponents): MDXComponents {
     ...defaultMdxComponents,
     TokenChecker,
     ChainChecker,
+    StatusTracker,
+    ToolCards,
     APIPage,
     ...components,
   };

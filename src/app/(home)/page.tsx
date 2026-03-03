@@ -51,7 +51,7 @@ export default function HomePage() {
       {/* Hero */}
       <div className="max-w-3xl text-center mb-16">
         <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-fd-foreground mb-4">
-          Welcome to Across Developer Documentation
+          Across Developer Documentation
         </h1>
         <p className="text-lg text-fd-muted-foreground">
           Learn how the protocol works and integrate in less than an hour.

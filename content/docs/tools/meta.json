@@ -2,5 +2,5 @@
   "title": "Tools",
   "root": true,
   "icon": "Wrench",
-  "pages": ["index", "token-checker", "chain-checker"]
+  "pages": ["index", "status-tracker", "token-checker", "chain-checker"]
 }
