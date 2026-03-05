@@ -1,5 +1,21 @@
 {
   "title": "API Reference",
   "root": true,
-  "icon": "Code"
+  "icon": "Code",
+  "pages": [
+    "---Swap API---",
+    "/swap/approval/get.mdx",
+    "/swap/approval/post.mdx",
+    "/swap/chains/get.mdx",
+    "/swap/tokens/get.mdx",
+    "/swap/sources/get.mdx",
+    "---Tracking Deposits---",
+    "/deposit/status/get.mdx",
+    "/deposits/get.mdx",
+    "---Bridgeable Routes and Limits---",
+    "/available-routes/get.mdx",
+    "/limits/get.mdx",
+    "---Suggested Fees API---",
+    "/suggested-fees/get.mdx"
+  ]
 }
