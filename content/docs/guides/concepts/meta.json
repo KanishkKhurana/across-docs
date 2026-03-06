@@ -1,4 +1,10 @@
 {
   "title": "Concepts",
-  "pages": ["crosschain-intents", "intents-architecture", "intent-lifecycle", "across-v4"]
+  "pages": [
+    "crosschain-intents",
+    "intents-architecture",
+    "intent-lifecycle",
+    "across-v4",
+    "erc-7683"
+  ]
 }

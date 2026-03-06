@@ -8,28 +8,28 @@ const tools = [
     title: 'Status Tracker',
     description:
       'Track the lifecycle of any Across deposit by transaction hash or deposit ID.',
-    href: '/docs/tools/status-tracker',
+    href: '/tools/status-tracker',
     icon: Activity,
   },
   {
     title: 'Token Checker',
     description:
       'Check if Across supports your token across all chains.',
-    href: '/docs/tools/token-checker',
+    href: '/tools/token-checker',
     icon: Coins,
   },
   {
     title: 'Chain Checker',
     description:
       'Check if Across supports your chain by ID or name.',
-    href: '/docs/tools/chain-checker',
+    href: '/tools/chain-checker',
     icon: LinkIcon,
   },
   {
     title: 'Transaction Builder',
     description:
       'Build crosschain swap + action requests for the Across API.',
-    href: '/docs/tools/transaction-builder',
+    href: '/tools/transaction-builder',
     icon: Blocks,
   },
 ];

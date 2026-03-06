@@ -12,21 +12,21 @@ const cards = [
     title: 'Integrate Across',
     description:
       'Start building with the Swap API and go live in under an hour.',
-    href: '/docs/introduction',
+    href: '/introduction',
     icon: BookOpen,
   },
   {
     title: 'API Reference',
     description:
       'Full endpoint docs with parameters, schemas, and code samples.',
-    href: '/docs/api-reference',
+    href: '/api-reference',
     icon: Code,
   },
   {
     title: 'AI Agents',
     description:
       'Let AI agents execute cross-chain actions on behalf of users.',
-    href: '/docs/ai-agents',
+    href: '/ai-agents',
     icon: Bot,
   },
 ];
@@ -93,7 +93,7 @@ export default function HomePage() {
 
       {/* Troubleshoot */}
       <Link
-        href="/docs/tools"
+        href="/tools"
         className="inline-flex items-center gap-2 rounded-lg border border-fd-border px-5 py-2.5 text-sm text-fd-muted-foreground transition-colors hover:border-fd-primary/40 hover:text-fd-foreground"
       >
         <Wrench className="h-4 w-4" />

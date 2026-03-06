@@ -2,5 +2,19 @@
   "title": "Introduction",
   "root": true,
   "icon": "BookOpen",
-  "pages": ["index", "stablecoins", "swap-api", "hypercore", "tracking-deposits", "refunds", "embedded-actions", "erc-7683", "fees", "actors", "security"]
+  "pages": [
+    "---Introduction---",
+    "index",
+    "stablecoins",
+    "---Developer Quickstart---",
+    "swap-api",
+    "hypercore",
+    "embedded-actions",
+    "fees",
+    "actors",
+    "---Tracking Deposits and Refunds---",
+    "tracking-deposits",
+    "refunds",
+    "security"
+  ]
 }
