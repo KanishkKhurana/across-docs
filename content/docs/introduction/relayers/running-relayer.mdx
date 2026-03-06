@@ -1,0 +1,96 @@
+---
+title: Running a Relayer
+description: Set up and operate your own Across V3 relay infrastructure.
+---
+
+The Across V3 Relayer is a Node.js-based system that enables users to operate their own relay infrastructure. The complete source code is available in the [relayer-v3 GitHub repository](https://github.com/across-protocol/relayer-v3).
+
+## System Requirements
+
+| Component | Minimum |
+| --------- | ------- |
+| CPU | 64-bit Dual Core @ 2+ GHz |
+| RAM | 4 GB |
+| OS | UNIX-like (GNU/Linux, macOS) |
+
+## Installation
+
+Clone the repository and set up your environment:
+
+```bash
+git clone https://github.com/across-protocol/relayer-v3.git
+cd relayer-v3
+touch .env
+chmod 0600 .env
+```
+
+Your `.env` file stores sensitive configuration. Restrict permissions to protect private keys or mnemonics.
+
+## Core Configuration
+
+### Essential Environment Variables
+
+| Variable | Description |
+| -------- | ----------- |
+| `SECRET` | Path to private key or mnemonic file |
+| `RPC_PROVIDER_*` | RPC endpoints for supported chains |
+| `RPC_PROVIDERS` | Provider preference ordering |
+| `SEND_RELAYS` | Enable transaction submission (default: `false`) |
+| `MAX_RELAYER_DEPOSIT_LOOK_BACK` | Lookback window in seconds |
+
+### Gas Configuration
+
+| Variable | Description |
+| -------- | ----------- |
+| `MAX_FEE_PER_GAS_SCALER_*` | Per-chain gas fee multipliers |
+| `PRIORITY_FEE_SCALER_*` | Priority fee adjustments |
+
+## Operational Workflow
+
+1. **Simulate first** — run with `SEND_RELAYS=false` to review transactions before going live:
+
+```bash
+SEND_RELAYS=false yarn relay
+```
+
+2. **Review** the simulated transactions and token approvals.
+
+3. **Go live** once you're satisfied:
+
+```bash
+SEND_RELAYS=true yarn relay
+```
+
+The relayer identifies unfilled deposits across chains and attempts to fill them when your token balances permit.
+
+## Advanced Features
+
+### Redis Caching
+
+Redis caching significantly improves performance by storing RPC responses. Configure it via the `REDIS_URL` environment variable.
+
+### Inventory Management
+
+Relayers can configure automatic rebalancing across chains using a JSON configuration that specifies:
+
+- Target allocation percentages per token and chain
+- WETH wrapping/unwrapping thresholds
+- Intelligent repayment chain selection
+
+### Supported Tokens
+
+WETH, USDC, DAI, USDT, WBTC, UMA, ACX, BAL, SNX, and POOL.
+
+## Refund Mechanism
+
+Relayers receive compensation through **root bundles** — a set of three Merkle roots containing all information necessary to refund relayers who fulfilled a deposit during a given block range. Root bundles are published every 1.5 hours minimum. Relayers choose their repayment chain, which affects how liquidity provider fees are distributed.
+
+## Security Considerations
+
+The relay bot requires in-memory access to private keys for transaction signing. Follow these best practices:
+
+- Deploy in isolated environments
+- Use key-based authentication for remote access
+- Restrict filesystem permissions on secret files
+- Maintain secure offline backups of key material
+- Limit exposure of systems with raw disk access

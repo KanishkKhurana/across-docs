@@ -1,0 +1,33 @@
+---
+title: Relayer Nomination
+description: How exclusive relayer nomination works and how to participate.
+---
+
+Relayer nomination grants a single relayer temporary exclusive rights to fulfill a specific deposit. The protocol assigns exclusivity through the `exclusiveRelayer` and `exclusivityDeadline` parameters at deposit creation, emitted via the `V3FundsDeposited` event.
+
+The designated relayer maintains fill rights until the deadline on the destination chain. After expiration, any relayer may complete unfilled deposits.
+
+## Why Nomination?
+
+Without nomination, relayers race to fill orders — creating collision risks and escalating gas price pressure. Exclusivity retains the speed gains that Across has unlocked for users while reducing uncertainty and risk for relayers.
+
+Additional benefits include:
+
+- **Performance evaluation** — the protocol can measure and score relayer reliability
+- **Order flow preferences** — a pathway toward rewarding top-performing relayers
+
+## Participation Requirements
+
+1. **Apply** — submit a pull request to the [Exclusive Relayer Configuration repository](https://github.com/across-protocol/exclusive-relayer-configs).
+2. **Build a track record** — new participants must demonstrate capability through step-in fills (completing deposits abandoned by other nominated relayers) and sub-10 second fill times on open order flow.
+3. **Receive scores** — selected relayers receive biweekly performance scores based on three metrics:
+
+| Metric | Description |
+| ------ | ----------- |
+| Completion Rate | Percentage of assigned fills successfully executed |
+| Fill Speed | Transaction timing benchmarked against non-exclusive baseline |
+| Step-in Fills | Ability to complete deposits abandoned by other nominated relayers |
+
+## Implementation Status
+
+The system is rolling out incrementally across select Across API routes. Most frontend flow currently has assigned exclusive relayers. Third-party integrators are expected to implement relayer exclusivity during Q1-Q2 2025.

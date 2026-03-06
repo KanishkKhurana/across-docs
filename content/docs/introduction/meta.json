@@ -15,6 +15,9 @@
     "---Tracking Deposits and Refunds---",
     "tracking-deposits",
     "refunds",
-    "security"
+    "security",
+    "---Relayers---",
+    "relayers/running-relayer.mdx",
+    "relayers/relayer-nomination.mdx"
   ]
 }

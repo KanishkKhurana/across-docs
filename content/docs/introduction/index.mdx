@@ -17,21 +17,7 @@ Across is a **crosschain interoperability protocol** that provides the fastest, 
 
 Unlike single-mechanism bridges, Across intelligently routes through **three distinct settlement pathways** to optimize for speed, cost, and transfer size.
 
-## Three Settlement Pathways
-
-<Cards>
-  <Card title="Intents (Relayer Network)">
-    The primary mechanism. Competitive relayers fulfill user intents using their own capital, then get repaid via optimistic settlement through UMA's oracle. Handles the vast majority of transfers with ~2 second fill times.
-  </Card>
-  <Card title="CCTP (Circle)">
-    For large USDC transfers up to **$10 million**. Uses Circle's native mint-and-burn infrastructure for native USDC settlement. No relayer capital required — Circle mints fresh USDC on the destination chain.
-  </Card>
-  <Card title="OFT Mint-and-Burn">
-    For tokens like **USDT** that use the LayerZero OFT standard. Burns tokens on the origin chain and mints them natively on the destination. No wrapped tokens or liquidity pools needed.
-  </Card>
-</Cards>
-
-The [Swap API](/docs/introduction/swap-api) automatically selects the optimal pathway — you don't need to choose.
+The [Swap API](/introduction/swap-api) automatically selects the optimal pathway — you don't need to choose.
 
 ## Quick Start
 
@@ -128,7 +114,6 @@ Across supports **23 mainnet chains** including:
 | HyperEVM | 999 |
 | Plasma | 9745 |
 
-And 8 testnet chains (Sepolia variants) for development. Use `https://testnet.across.to/api` as the base URL for testnet.
 
 ## What's Next
 

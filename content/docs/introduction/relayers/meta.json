@@ -1,0 +1,9 @@
+{
+    "title": "Relayers",
+    "root": true,
+    "pages": [
+      "running-relayer",
+      "relayer-nomination"
+    ]
+  }
+  
