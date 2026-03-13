@@ -185,14 +185,14 @@ export async function ChainsAndContracts() {
               >
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-2.5">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}                    
-                    {/* <img
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
                       src={chain.logoUrl}
                       alt={chain.name}
                       width={24}
                       height={24}
                       className="rounded-full shrink-0"
-                    /> */}
+                    />
                     <span className="font-medium text-[var(--color-fd-foreground)]">
                       {chain.name}
                     </span>
