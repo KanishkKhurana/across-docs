@@ -275,16 +275,7 @@ export function patchSpec(yaml) {
     }
   }
 
-  // --- Patch 4: Add global bearerAuth security + securitySchemes ---
-  if (!result.includes('\nsecurity:\n')) {
-    result = result.replace(
-      '\npaths:\n',
-      '\nsecurity:\n  - bearerAuth: []\npaths:\n',
-    );
-    patchCount++;
-    console.log('  Patched: added global security (bearerAuth)');
-  }
-
+  // --- Patch 4: Add securitySchemes (for docs display, not enforced globally) ---
   if (!result.includes('securitySchemes:')) {
     result = result.replace(
       '\ncomponents:\n',

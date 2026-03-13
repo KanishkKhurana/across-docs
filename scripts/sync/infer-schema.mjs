@@ -1,6 +1,7 @@
 /**
  * Infers an OpenAPI 3.0 schema from a JSON value.
  * Handles strings, numbers, integers, booleans, arrays, nested objects, nulls.
+ * Captures representative `example` values for primitive types.
  */
 export function inferSchema(value) {
   if (value === null || value === undefined) {
@@ -26,15 +27,21 @@ export function inferSchema(value) {
   }
 
   if (typeof value === 'boolean') {
-    return { type: 'boolean' };
+    return { type: 'boolean', example: value };
   }
 
   if (typeof value === 'number') {
-    return Number.isInteger(value) ? { type: 'integer' } : { type: 'number' };
+    return Number.isInteger(value)
+      ? { type: 'integer', example: value }
+      : { type: 'number', example: value };
   }
 
   if (typeof value === 'string') {
-    return { type: 'string' };
+    // Keep examples short and skip values that look sensitive
+    const example = value.length <= 120 ? value : undefined;
+    const schema = { type: 'string' };
+    if (example !== undefined) schema.example = example;
+    return schema;
   }
 
   return {};
@@ -60,8 +67,12 @@ export function mergeSchemas(schemas) {
           if (!allProperties[key]) {
             allProperties[key] = val;
           } else {
-            // Merge nested schemas
-            allProperties[key] = mergeSchemas([allProperties[key], val]);
+            // Merge nested schemas, preserving examples from earlier schemas
+            const merged = mergeSchemas([allProperties[key], val]);
+            if (!merged.example && allProperties[key].example !== undefined) {
+              merged.example = allProperties[key].example;
+            }
+            allProperties[key] = merged;
           }
         }
       }

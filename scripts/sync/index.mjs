@@ -12,6 +12,7 @@ const SPEC_URL =
   'https://raw.githubusercontent.com/across-protocol/api-reference/master/api-reference.yaml';
 const LOCAL_SPEC = './content/openapi/api-reference.yaml';
 const REPORT_PATH = './scripts/sync/last-sync-report.json';
+const SUMMARY_PATH = './scripts/sync/last-sync-summary.md';
 
 function parseArgs() {
   const args = process.argv.slice(2);
@@ -189,6 +190,16 @@ async function main() {
   console.log(`New fields: ${totalAdded}`);
   console.log(`Type changes (review needed): ${totalTypeChanges}`);
   console.log(`Missing from response: ${totalMissing}`);
+
+  // Generate markdown summary for PR body
+  const summary = generateSummaryMarkdown(report, {
+    totalAdded,
+    totalCreated,
+    totalTypeChanges,
+    totalMissing,
+  });
+  writeFileSync(SUMMARY_PATH, summary);
+  console.log(`Markdown summary saved to ${SUMMARY_PATH}`);
 }
 
 /**
@@ -236,6 +247,96 @@ function flattenInferred(schema, prefix = '') {
     results.push(...flattenInferred(schema.items, `${prefix}[]`));
   }
   return results;
+}
+
+/**
+ * Generates a rich markdown summary suitable for use as a PR body.
+ */
+function generateSummaryMarkdown(report, totals) {
+  const lines = [
+    '## API Schema Sync Report',
+    '',
+    `**Date**: ${report.timestamp}`,
+    `**Mode**: ${report.mode}`,
+    '',
+    '| Metric | Count |',
+    '|--------|-------|',
+    `| Endpoints processed | ${report.endpoints.length} |`,
+    `| New schemas created | ${totals.totalCreated} |`,
+    `| Fields added | ${totals.totalAdded} |`,
+    `| Type changes (needs review) | ${totals.totalTypeChanges} |`,
+    `| Missing from live response | ${totals.totalMissing} |`,
+    '',
+  ];
+
+  if (totals.totalAdded === 0 && totals.totalCreated === 0 && totals.totalTypeChanges === 0) {
+    lines.push('> No drift detected — the spec matches the live API.');
+    return lines.join('\n');
+  }
+
+  lines.push('### Endpoint Details', '');
+
+  for (const ep of report.endpoints) {
+    lines.push(`#### ${ep.name}`);
+
+    if (ep.error) {
+      lines.push(`> Error: ${ep.error}`, '');
+      continue;
+    }
+
+    if (ep.created) {
+      lines.push(`**Created new schema** from live response (${ep.diff.added.length} fields)`);
+    }
+
+    // Added fields
+    if (ep.diff.added.length > 0) {
+      lines.push('', '<details>', `<summary>New fields (${ep.diff.added.length})</summary>`, '');
+      const toShow = ep.diff.added.slice(0, 30);
+      for (const a of toShow) {
+        const type = a.schema?.type || 'unknown';
+        const example =
+          a.schema?.example !== undefined
+            ? ` — e.g. \`${String(a.schema.example).slice(0, 60)}\``
+            : '';
+        lines.push(`- \`${a.path}\` (${type})${example}`);
+      }
+      if (ep.diff.added.length > 30) {
+        lines.push(`- … and ${ep.diff.added.length - 30} more`);
+      }
+      lines.push('', '</details>');
+    }
+
+    // Type changes
+    if (ep.diff.typeChanges.length > 0) {
+      lines.push('', '**Type changes (NOT auto-applied — needs manual review):**');
+      for (const tc of ep.diff.typeChanges) {
+        lines.push(`- \`${tc.path}\`: \`${tc.existingType}\` → \`${tc.inferredType}\``);
+      }
+    }
+
+    // Missing
+    if (ep.diff.missing.length > 0) {
+      lines.push('', `<details>`, `<summary>Fields in spec but absent from response (${ep.diff.missing.length}) — may be conditional</summary>`, '');
+      for (const m of ep.diff.missing.slice(0, 20)) {
+        lines.push(`- \`${m.path}\``);
+      }
+      if (ep.diff.missing.length > 20) {
+        lines.push(`- … and ${ep.diff.missing.length - 20} more`);
+      }
+      lines.push('', '</details>');
+    }
+
+    lines.push('');
+  }
+
+  lines.push(
+    '---',
+    '',
+    '> Auto-generated descriptions and examples are included for new fields.',
+    '> Fields are marked with `x-auto-generated: true` — review and refine descriptions before merging.',
+  );
+
+  return lines.join('\n');
 }
 
 main().catch((err) => {

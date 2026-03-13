@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "generate:api": "node scripts/generate-docs.mjs",
+    "generate:api:local": "node scripts/generate-docs.mjs --local",
     "sync:api:report": "node scripts/sync/index.mjs --mode=report",
     "sync:api:update": "node scripts/sync/index.mjs --mode=update",
     "prebuild": "pnpm generate:api",

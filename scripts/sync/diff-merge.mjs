@@ -199,27 +199,99 @@ function addFieldToSchema(schemaNode, dotPath, schema) {
   // Only add if it doesn't already exist
   const existing = props.get(fieldName, true);
   if (!existing) {
-    props.set(fieldName, buildSchemaNode(schema));
+    props.set(fieldName, buildSchemaNode(schema, fieldName));
   }
 }
 
 /**
- * Builds a plain object suitable for YAML serialization from an inferred schema.
- * Marks all auto-generated fields.
+ * Common abbreviation map for generating descriptions from field names.
  */
-function buildSchemaNode(schema) {
+const ABBREVIATIONS = {
+  id: 'ID', url: 'URL', uri: 'URI', api: 'API', rpc: 'RPC', lp: 'LP',
+  tx: 'transaction', txn: 'transaction', txs: 'transactions',
+  usd: 'USD', eth: 'ETH', erc: 'ERC', nft: 'NFT',
+  amt: 'amount', addr: 'address', num: 'number', pct: 'percentage',
+  src: 'source', dst: 'destination', orig: 'origin', dest: 'destination',
+  ts: 'timestamp', config: 'configuration', max: 'maximum', min: 'minimum',
+  sec: 'seconds', ms: 'milliseconds', msg: 'message', ref: 'reference',
+  info: 'information', idx: 'index', qty: 'quantity', vol: 'volume',
+};
+
+/**
+ * Generates a human-readable description from a camelCase or snake_case field name.
+ * e.g. "estimatedFillTimeSec" → "Estimated fill time in seconds"
+ *      "originChainId"        → "Origin chain ID"
+ */
+export function generateDescription(fieldName) {
+  if (!fieldName) return '';
+
+  // Split on camelCase boundaries and underscores
+  let words = fieldName
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .replace(/_/g, ' ')
+    .toLowerCase()
+    .split(/\s+/)
+    .filter(Boolean);
+
+  if (words.length === 0) return '';
+
+  // Map abbreviations
+  words = words.map((w) => ABBREVIATIONS[w] || w);
+
+  // Insert "in" before trailing time/size units when preceded by a non-unit word
+  const last = words[words.length - 1]?.toLowerCase();
+  if (
+    words.length >= 2 &&
+    (last === 'seconds' || last === 'milliseconds' || last === 'bytes')
+  ) {
+    const prev = words[words.length - 2]?.toLowerCase();
+    if (!['in', 'per', 'of', 'by', 'for'].includes(prev)) {
+      words.splice(words.length - 1, 0, 'in');
+    }
+  }
+
+  // Capitalize first letter
+  words[0] = words[0].charAt(0).toUpperCase() + words[0].slice(1);
+
+  return words.join(' ');
+}
+
+/**
+ * Builds a plain object suitable for YAML serialization from an inferred schema.
+ * Marks all auto-generated fields.  Includes example values and auto-generated
+ * descriptions derived from the field name.
+ *
+ * @param {object} schema - Inferred schema object
+ * @param {string} [fieldName] - Field name (used to generate a description)
+ */
+function buildSchemaNode(schema, fieldName) {
   if (!schema || typeof schema !== 'object') return schema;
 
   const node = {};
   if (schema.type) node.type = schema.type;
   if (schema.nullable) node.nullable = true;
 
+  // Auto-generate a description from the field name
+  if (fieldName) {
+    const desc = generateDescription(fieldName);
+    if (desc) node.description = desc;
+  }
+
+  // Include example for primitive types
+  if (
+    schema.example !== undefined &&
+    schema.type !== 'object' &&
+    schema.type !== 'array'
+  ) {
+    node.example = schema.example;
+  }
+
   node['x-auto-generated'] = true;
 
   if (schema.type === 'object' && schema.properties) {
     node.properties = {};
     for (const [key, val] of Object.entries(schema.properties)) {
-      node.properties[key] = buildSchemaNode(val);
+      node.properties[key] = buildSchemaNode(val, key);
     }
   }
 

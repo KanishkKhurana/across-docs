@@ -22,6 +22,7 @@ yarn-error.log*
 
 # sync reports
 scripts/sync/last-sync-report.json
+scripts/sync/last-sync-summary.md
 
 # others
 .env*.local
