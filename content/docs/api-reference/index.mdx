@@ -3,6 +3,8 @@ title: API Reference
 description: Complete API reference for the Across Protocol.
 ---
 
+import { Callout } from 'fumadocs-ui/components/callout';
+
 The Across API provides programmatic access to cross-chain bridging and swap functionality. Use these endpoints to get quotes, check limits, query deposit status, and more.
 
 ## Server URLs
@@ -10,11 +12,15 @@ The Across API provides programmatic access to cross-chain bridging and swap fun
 | Environment | Base URL |
 |-------------|----------|
 | Production  | `https://app.across.to/api` |
-| Testnet     | `https://testnet.across.to/api` |
+
 
 ## Authentication
 
-All endpoints are publicly accessible. No API key is required. Production integrations should register for an [integrator ID](https://docs.across.to) (a 2-byte hex identifier) and pass it as a query parameter.
+All API requests require a Bearer token passed via the `Authorization` header.
+
+<Callout type="info">
+To get your API key, reach out to us on [Telegram](https://t.me/acrosstg).
+</Callout>
 
 ## Endpoints
 

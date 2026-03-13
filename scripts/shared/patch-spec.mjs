@@ -275,6 +275,34 @@ export function patchSpec(yaml) {
     }
   }
 
+  // --- Patch 4: Add global bearerAuth security + securitySchemes ---
+  if (!result.includes('\nsecurity:\n')) {
+    result = result.replace(
+      '\npaths:\n',
+      '\nsecurity:\n  - bearerAuth: []\npaths:\n',
+    );
+    patchCount++;
+    console.log('  Patched: added global security (bearerAuth)');
+  }
+
+  if (!result.includes('securitySchemes:')) {
+    result = result.replace(
+      '\ncomponents:\n',
+      [
+        '\ncomponents:',
+        '  securitySchemes:',
+        '    bearerAuth:',
+        '      type: http',
+        '      scheme: bearer',
+        '      bearerFormat: API Key',
+        "      description: 'Use `Authorization: Bearer <api_key>`.'",
+        "      x-gitbook-description-html: '<p>Use <code>Authorization: Bearer &#x3C;api_key></code>.</p>'",
+      ].join('\n') + '\n',
+    );
+    patchCount++;
+    console.log('  Patched: added securitySchemes (bearerAuth)');
+  }
+
   if (patchCount === 0) {
     console.warn(
       'Warning: no patch targets found — the upstream spec may have been fixed.',
