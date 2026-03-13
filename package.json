@@ -4,6 +4,8 @@
   "private": true,
   "scripts": {
     "generate:api": "node scripts/generate-docs.mjs",
+    "sync:api:report": "node scripts/sync/index.mjs --mode=report",
+    "sync:api:update": "node scripts/sync/index.mjs --mode=update",
     "prebuild": "pnpm generate:api",
     "build": "next build",
     "dev": "next dev",
@@ -34,6 +36,7 @@
     "eslint-config-next": "16.1.6",
     "postcss": "^8.5.6",
     "tailwindcss": "^4.2.1",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "yaml": "^2.8.2"
   }
 }
