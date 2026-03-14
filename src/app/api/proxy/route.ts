@@ -19,6 +19,7 @@ const SAFE_REQUEST_HEADERS = [
   'accept-language',
   'authorization',
   'content-type',
+  'user-agent',
 ];
 
 // Response headers that are stale after Node.js auto-decompresses the body,
@@ -57,6 +58,14 @@ async function proxyHandler(req: NextRequest) {
   for (const name of SAFE_REQUEST_HEADERS) {
     const value = req.headers.get(name);
     if (value) upstreamHeaders.set(name, value);
+  }
+  // Cloudflare blocks requests without a recognisable User-Agent (bot detection).
+  // Ensure one is always present — forward the caller's or fall back to a browser-like UA.
+  if (!upstreamHeaders.has('user-agent')) {
+    upstreamHeaders.set(
+      'user-agent',
+      'Mozilla/5.0 (compatible; AcrossDocs/1.0)',
+    );
   }
 
   // Forward request body for methods that support it
