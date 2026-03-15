@@ -5529,22 +5529,22 @@ components:
         relayGasFeePct:
           type: string
           description: Relay gas fee percentage
-          example: "139038412431"
+          example: "139120089635"
           x-auto-generated: true
         relayGasFeeTotal:
           type: string
           description: Relay gas fee total
-          example: "139038412431"
+          example: "139120089635"
           x-auto-generated: true
         relayFeePct:
           type: string
           description: Relay fee percentage
-          example: "78889038412432"
+          example: "78889120089636"
           x-auto-generated: true
         relayFeeTotal:
           type: string
           description: Relay fee total
-          example: "78889038412432"
+          example: "78889120089636"
           x-auto-generated: true
         lpFeePct:
           type: string
@@ -5559,7 +5559,7 @@ components:
         outputAmount:
           type: string
           description: Output amount
-          example: "999921110961587568"
+          example: "999921110879910364"
           x-auto-generated: true
         inputToken:
           type: object
@@ -5614,7 +5614,7 @@ components:
         id:
           type: string
           description: ID
-          example: mwx4s-1773444486511-80eb52946bbd
+          example: k4bpt-1773558204431-67b66a92b5db
           x-auto-generated: true
     TransferLimits:
       type: object
@@ -5662,22 +5662,22 @@ components:
             relayFeeTotal:
               type: string
               description: Relay fee total
-              example: "139038412431"
+              example: "139092129545"
               x-auto-generated: true
             relayFeePercent:
               type: string
               description: Relay fee percent
-              example: "1390384124310000000000000000"
+              example: "1390921295450000000000000000"
               x-auto-generated: true
             gasFeeTotal:
               type: string
               description: Gas fee total
-              example: "139038412431"
+              example: "139092129545"
               x-auto-generated: true
             gasFeePercent:
               type: string
               description: Gas fee percent
-              example: "1390384124310000000000000000"
+              example: "1390921295450000000000000000"
               x-auto-generated: true
             capitalFeeTotal:
               type: string
@@ -5702,17 +5702,17 @@ components:
             opStackL1GasCost:
               type: string
               description: Op stack l1 gas cost
-              example: "1167409150"
+              example: "1134098978"
               x-auto-generated: true
             gasPrice:
               type: string
               description: Gas price
-              example: "1000582"
+              example: "1000770"
               x-auto-generated: true
             tokenGasCost:
               type: string
               description: Token gas cost
-              example: "139087632030"
+              example: "139080235778"
               x-auto-generated: true
         reserves:
           type: object
@@ -5722,12 +5722,12 @@ components:
             liquidReserves:
               type: string
               description: Liquid reserves
-              example: "2461862124367757747020"
+              example: "2160712372095100705573"
               x-auto-generated: true
             utilizedReserves:
               type: string
               description: Utilized reserves
-              example: "3041746011060329151492"
+              example: "3149578666427607485629"
               x-auto-generated: true
     AvailableRoute:
       type: object
