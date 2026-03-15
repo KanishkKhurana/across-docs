@@ -5,6 +5,7 @@ import { getMDXComponents } from '@/mdx-components';
 import type { Metadata } from 'next';
 import { createRelativeLink } from 'fumadocs-ui/mdx';
 import { LLMCopyButton, ViewOptions } from '@/components/ai/page-actions';
+import { TocAIChat } from '@/components/ai/toc-ai-chat';
 import { gitConfig } from '@/lib/layout.shared';
 
 export default async function Page(props: PageProps<'/[...slug]'>) {
@@ -13,9 +14,10 @@ export default async function Page(props: PageProps<'/[...slug]'>) {
   if (!page) notFound();
 
   const MDX = page.data.body;
+  const isApiRef = params.slug[0] === 'api-reference';
 
   return (
-    <DocsPage toc={page.data.toc} full={page.data.full}>
+    <DocsPage toc={page.data.toc} full={page.data.full} tableOfContent={isApiRef ? undefined : { footer: <TocAIChat /> }}>
       <DocsTitle>{page.data.title}</DocsTitle>
       <DocsDescription className="mb-0">{page.data.description}</DocsDescription>
       <div className="flex flex-row gap-2 items-center border-b pb-6">

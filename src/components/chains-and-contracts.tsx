@@ -156,8 +156,8 @@ export async function ChainsAndContracts() {
       </div>
 
       {/* Desktop Table */}
-      <div className="hidden md:block rounded-xl border border-[var(--color-fd-border)] overflow-hidden">
-        <table className="w-full text-sm">
+      <div className="hidden md:block rounded-xl border border-[var(--color-fd-border)] overflow-x-auto">
+        <table className="w-full min-w-[700px] text-sm">
           <thead>
             <tr className="border-b border-[var(--color-fd-border)] bg-[var(--color-fd-card)]">
               <th className="text-left px-4 py-3 text-xs font-medium text-[var(--color-fd-muted-foreground)] uppercase tracking-wider">

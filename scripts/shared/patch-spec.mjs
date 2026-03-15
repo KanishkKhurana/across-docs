@@ -275,24 +275,7 @@ export function patchSpec(yaml) {
     }
   }
 
-  // --- Patch 4: Add securitySchemes (for docs display, not enforced globally) ---
-  if (!result.includes('securitySchemes:')) {
-    result = result.replace(
-      '\ncomponents:\n',
-      [
-        '\ncomponents:',
-        '  securitySchemes:',
-        '    bearerAuth:',
-        '      type: http',
-        '      scheme: bearer',
-        '      bearerFormat: API Key',
-        "      description: 'Use `Authorization: Bearer <api_key>`.'",
-        "      x-gitbook-description-html: '<p>Use <code>Authorization: Bearer &#x3C;api_key></code>.</p>'",
-      ].join('\n') + '\n',
-    );
-    patchCount++;
-    console.log('  Patched: added securitySchemes (bearerAuth)');
-  }
+
 
   if (patchCount === 0) {
     console.warn(

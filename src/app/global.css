@@ -43,3 +43,13 @@ h1, h2, h3, h4, h5, h6 {
 #nd-sidebar a[data-active][href^="/"] {
   margin-block: 2px !important;
 }
+
+/* Make sidebar icons brighter than their labels */
+#nd-sidebar svg {
+  color: #E0F3FF !important;
+}
+
+/* Active sidebar icon matches the aqua text */
+#nd-sidebar a[data-active="true"] svg {
+  color: #6CF9D8 !important;
+}
