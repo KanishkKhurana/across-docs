@@ -356,7 +356,7 @@ export function AISearchPanel() {
       <Presence present={open}>
         <div
           data-state={open ? 'open' : 'closed'}
-          className="fixed inset-0 z-30 backdrop-blur-xs bg-fd-overlay data-[state=open]:animate-fd-fade-in data-[state=closed]:animate-fd-fade-out lg:hidden"
+          className="fixed inset-0 z-30 backdrop-blur-xs bg-fd-overlay data-[state=open]:animate-fd-fade-in data-[state=closed]:animate-fd-fade-out xl:hidden"
           onClick={() => setOpen(false)}
         />
       </Presence>
@@ -364,14 +364,14 @@ export function AISearchPanel() {
         <div
           className={cn(
             'overflow-hidden z-30 bg-fd-card text-fd-card-foreground [--ai-chat-width:400px] 2xl:[--ai-chat-width:460px]',
-            'max-lg:fixed max-lg:inset-x-2 max-lg:top-4 max-lg:border max-lg:rounded-2xl max-lg:shadow-xl',
-            'lg:sticky lg:top-0 lg:h-dvh lg:border-s lg:ms-auto lg:in-[#nd-docs-layout]:[grid-area:toc] lg:in-[#nd-notebook-layout]:row-span-full lg:in-[#nd-notebook-layout]:col-start-5',
+            'max-xl:fixed max-xl:inset-x-2 max-xl:top-4 max-xl:border max-xl:rounded-2xl max-xl:shadow-xl',
+            'xl:sticky xl:top-0 xl:h-dvh xl:border-s xl:ms-auto xl:in-[#nd-docs-layout]:[grid-area:toc] xl:in-[#nd-notebook-layout]:row-span-full xl:in-[#nd-notebook-layout]:col-start-5',
             open
               ? 'animate-fd-dialog-in lg:animate-[ask-ai-open_200ms]'
               : 'animate-fd-dialog-out lg:animate-[ask-ai-close_200ms]',
           )}
         >
-          <div className="flex flex-col size-full p-2 max-lg:max-h-[80dvh] lg:p-3 lg:w-(--ai-chat-width)">
+          <div className="flex flex-col size-full p-2 max-xl:max-h-[80dvh] xl:p-3 xl:w-(--ai-chat-width)">
             <AISearchPanelHeader />
             <AISearchPanelList className="flex-1" />
             <div className="rounded-xl border bg-fd-secondary text-fd-secondary-foreground shadow-sm has-focus-visible:shadow-md">
