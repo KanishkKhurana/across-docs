@@ -2,6 +2,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Wrench, ArrowRight } from 'lucide-react';
 import { HomeSearch } from '@/components/ai/home-search';
+import { HomeBg } from '@/components/home-bg';
 
 const cards = [
   {
@@ -29,7 +30,9 @@ const cards = [
 
 export default function HomePage() {
   return (
-    <main className="flex flex-col items-center px-6 py-8 flex-1">
+    <main className="relative flex flex-col items-center px-6 py-8 flex-1 overflow-hidden">
+      <HomeBg />
+      <div className="relative z-10 flex flex-col items-center w-full">
       {/* Announcement Banner */}
       <a
         href="https://app.across.to"
@@ -87,7 +90,7 @@ export default function HomePage() {
           <Link
             key={card.href}
             href={card.href}
-            className="group rounded-xl border border-fd-border bg-fd-card p-6 transition-colors hover:border-fd-primary/40"
+            className="group rounded-3xl border border-transparent bg-fd-card p-6 transition-colors hover:bg-[rgba(108,249,216,0.1)]"
           >
             <div className="inline-flex items-center justify-center rounded-lg p-2 mb-4" style={{ backgroundColor: 'rgba(108, 249, 216, 0.1)' }}>
               <Image src={card.image} alt="" width={32} height={32} />
@@ -110,6 +113,7 @@ export default function HomePage() {
         <Wrench className="h-4 w-4" />
         Troubleshoot
       </Link>
+      </div>
     </main>
   );
 }
