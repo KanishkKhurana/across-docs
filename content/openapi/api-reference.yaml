@@ -25,6 +25,8 @@ info:
 servers:
   - url: https://app.across.to/api
   - url: https://testnet.across.to/api
+security:
+  - bearerAuth: []
 paths:
   /suggested-fees:
     get:
@@ -5746,6 +5748,11 @@ paths:
         <p>Returns a list of all supported sources that support crosschain swaps
         on Across Protocol.</p>
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: API key for authentication. Request your key at https://t.me/acrosstg.
   schemas:
     SwapApprovalRequest:
       type: object

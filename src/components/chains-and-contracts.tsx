@@ -9,9 +9,7 @@ const CHAINS_API_URL = 'https://app.across.to/api/swap/chains';
 // Add chain IDs here to show them in the "Chains Coming Soon" table.
 // Contracts are pulled from deployed-addresses.json, names from chain_name.
 const COMING_SOON_CHAIN_IDS: string[] = [
-  // '480',    // Example: World Chain
-  // '57073',  // Example: Ink
-  '4217',
+  '4217', // Tempo
 ];
 
 interface ChainInfo {
