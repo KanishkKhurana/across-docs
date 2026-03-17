@@ -5,6 +5,9 @@
   "pages": [
     "---Introduction---",
     "index",
+    "why-across",
+    "features",
+    "api-keys",
     "stablecoins",
     "---Developer Quickstart---",
     "swap-api",

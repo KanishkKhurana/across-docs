@@ -1,0 +1,71 @@
+---
+title: Why Across
+icon: Trophy
+description: Why Across is the fastest, cheapest, and most secure crosschain interoperability protocol.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+<Callout type="info">
+  This page is being expanded with detailed comparisons and benchmarks. Key points are outlined below.
+</Callout>
+
+## Speed
+
+Across delivers **sub-2-second fills** on mainnet through a competitive relayer network. Relayers front capital on the destination chain, so users don't wait for finality or message passing.
+
+{/* TODO: Add speed comparison table vs other bridges */}
+
+## Cost
+
+Across's aggregated settlement model (O(1) cost per bundle, not per fill) keeps fees low. The protocol batches all fills into a single settlement bundle every ~1.5 hours, amortizing gas costs across all users.
+
+{/* TODO: Add fee comparison data */}
+
+## Security
+
+Across has had **zero security exploits** since launch. The security model combines:
+
+- **Optimistic verification** with UMA's Optimistic Oracle — bundles are accepted unless challenged
+- **Economic bonds** — proposers stake capital that can be slashed for invalid bundles
+- **Only one honest actor needed** — a single honest dispute is enough to reject a bad bundle
+- **V4 ZK proofs** — Succinct/SP1 zero-knowledge proofs provide cryptographic settlement verification
+
+{/* TODO: Add security audit details and comparison */}
+
+## Settlement Innovation
+
+Three distinct settlement mechanisms optimize for different transfer types:
+
+| Mechanism | Best For | Key Advantage |
+|-----------|----------|---------------|
+| **Intents** | Most transfers | ~2 second fills via relayer competition |
+| **CCTP V2 / CCTPFast** | Large USDC (up to $10M) | No relayer capital needed, native USDC |
+| **OFT** | USDT0 transfers | Native mint-and-burn, no wrapped tokens |
+
+{/* TODO: Expand with settlement flow details */}
+
+## Chain Coverage
+
+**23+ mainnet chains** and **8 testnet chains**, including first-mover support for:
+
+- Solana
+- MegaETH
+- Plasma
+- Monad
+- Hyperliquid (HyperCore + HyperEVM)
+
+{/* TODO: Add timeline of chain launches showing speed of expansion */}
+
+## Integration Simplicity
+
+One API call to bridge across any supported chain. The [Swap API](/docs/introduction/swap-api) handles:
+
+- Mechanism selection (intents vs CCTP vs OFT)
+- Token routing and swaps
+- Gas estimation
+- Approval transaction generation
+
+No need to understand the underlying settlement — just call `/swap/approval` and execute the returned calldata.
+
+{/* TODO: Add comparison of integration complexity vs other bridges */}

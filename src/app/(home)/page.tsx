@@ -30,7 +30,7 @@ const cards = [
 
 export default function HomePage() {
   return (
-    <main className="relative flex flex-col items-center px-6 py-8 flex-1 overflow-hidden">
+    <main className="relative flex flex-col items-center justify-center px-6 py-8 flex-1 overflow-hidden">
       <HomeBg />
       <div className="relative z-10 flex flex-col items-center w-full">
       {/* Announcement Banner */}
@@ -44,7 +44,7 @@ export default function HomePage() {
           New
         </span>
         Bridge to Hyperliquid for free
-        <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+        <ArrowRight className="h-6 w-6 p-1 transition-transform rounded-full group-hover:translate-x-0.5" style={{ backgroundColor: '#6CF9D8', color: '#151518' }} />
       </a>
 
       {/* Logo */}

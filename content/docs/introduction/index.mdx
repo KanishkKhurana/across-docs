@@ -20,6 +20,10 @@ Unlike single-mechanism bridges, Across intelligently routes through **three dis
 
 The [Swap API](/introduction/swap-api) automatically selects the optimal pathway — you don't need to choose.
 
+<Callout type="warn">
+  **API key required for production.** [Request your API key and integrator ID](/docs/introduction/api-keys) or [reach out on Telegram](https://t.me/acrosstg).
+</Callout>
+
 ## Quick Start
 
 Get a crosschain swap executing in three steps:
@@ -39,10 +43,16 @@ Get a crosschain swap executing in three steps:
       outputToken: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", // USDC on Base
       amount: "1000000000",          // 1000 USDC (6 decimals)
       depositor: "0xYourWalletAddress",
+      integratorId: "0xdead",        // Your integrator ID
     });
 
     const response = await fetch(
-      `https://app.across.to/api/swap/approval?${params}`
+      `https://app.across.to/api/swap/approval?${params}`,
+      {
+        headers: {
+          Authorization: "Bearer YOUR_API_KEY",
+        },
+      }
     );
     const quote = await response.json();
     ```

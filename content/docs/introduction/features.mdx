@@ -1,0 +1,85 @@
+---
+title: Key Features
+icon: Sparkles
+description: What makes Across the fastest, cheapest, and most secure crosschain interoperability protocol.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+## Three Settlement Mechanisms
+
+Across is unique in offering three independent settlement pathways. The [Swap API](/docs/introduction/swap-api) automatically selects the optimal mechanism for each transfer.
+
+<Cards>
+  <Card title="Intents — Relayer Network" href="/docs/guides/concepts/intent-lifecycle">
+    Sub-2-second fills via a competitive relayer network that fronts capital on the destination chain. The default pathway for most transfers.
+  </Card>
+  <Card title="CCTP V2 / CCTPFast — Native USDC" href="/docs/introduction/stablecoins">
+    Circle's Crosschain Transfer Protocol for native USDC mint-and-burn. Supports transfers up to $10M per transaction with no relayer capital required.
+  </Card>
+  <Card title="OFT — Native USDT0" href="/docs/introduction/stablecoins">
+    LayerZero's Omnichain Fungible Token standard for native USDT0 settlement. More OFT tokens coming soon.
+  </Card>
+</Cards>
+
+## Feature Highlights
+
+| Feature | Details |
+|---------|---------|
+| **Sub-2-second fills** | Competitive relayer network delivers funds on the destination chain in ~2 seconds on mainnet |
+| **23+ mainnet chains** | Solana, MegaETH, Plasma, Monad, Hyperliquid, and all major L2s |
+| **CCTP V2 / CCTPFast** | Native USDC settlement up to $10M per transaction. CCTPFast offers faster attestation where available |
+| **Sponsored routes** | Zero-fee transfers on select routes (e.g., USDC to USDH on Hyperliquid) |
+| **Embedded crosschain actions** | Compose DeFi operations — swap, bridge, and execute destination-chain calls in a single transaction |
+| **OFT for USDT0** | Native USDT0 mint-and-burn settlement via LayerZero. More tokens coming soon |
+| **ERC-7683 standard** | Implements the crosschain intent standard for interoperability with other intent-based systems |
+| **V4 ZK proofs** | Succinct/SP1 zero-knowledge proofs enable permissionless chain expansion without governance votes |
+
+## Speed
+
+Across's relayer network fills most transfers in **~2 seconds** on mainnet. Relayers compete on speed, fronting their own capital on the destination chain and getting repaid later through the [settlement process](/docs/guides/concepts/intent-lifecycle).
+
+Testnet fills take ~1 minute due to lower relayer competition.
+
+## Chain Coverage
+
+Across supports **23+ mainnet chains** including:
+
+- **EVM L2s** — Arbitrum, Optimism, Base, Polygon, zkSync, Linea, Scroll, Blast, Mode, Redstone, Zora, and more
+- **Alt-L1s and new chains** — Solana, MegaETH, Plasma, Monad
+- **App-specific chains** — Hyperliquid (HyperCore + HyperEVM)
+- **Testnet support** — 8 testnet chains for development
+
+See the full list via the [`/swap/chains`](/docs/api-reference) endpoint.
+
+## Sponsored Routes
+
+Certain routes are **zero-fee** — the protocol or partners subsidize the transfer cost. For example, USDC to USDH on Hyperliquid is a sponsored route with no bridge fee.
+
+Check the `/swap/approval` response for fee breakdowns. Sponsored routes show `0` total fees.
+
+## Embedded Crosschain Actions
+
+Bridge and execute in one transaction. Attach arbitrary contract calls to your crosschain transfer — the [MulticallHandler](/docs/introduction/embedded-actions) executes them atomically on the destination chain.
+
+Use cases:
+- Swap + deposit into Aave
+- Bridge + add liquidity to a DEX
+- Transfer + stake on the destination chain
+
+## ERC-7683
+
+Across implements the [ERC-7683 crosschain intent standard](https://eips.ethereum.org/EIPS/eip-7683), enabling interoperability with other intent-based protocols and standardized order formats.
+
+## V4 — ZK-Powered Expansion
+
+Across V4 introduces zero-knowledge proofs via Succinct's SP1 prover for settlement verification. This enables:
+
+- **Permissionless chain expansion** — new chains can be added without governance votes
+- **Faster settlement** — ZK proofs replace the optimistic challenge period
+- **Reduced trust assumptions** — cryptographic verification instead of economic security
+
+<Callout type="info">
+  V4 is rolling out progressively. See [Across V4](/docs/guides/concepts/across-v4) for technical details.
+</Callout>

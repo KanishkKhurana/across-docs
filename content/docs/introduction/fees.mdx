@@ -54,7 +54,7 @@ R(U) = R0 + (min(U-bar, U) / U-bar) * R1 + (max(0, U - U-bar) / (1 - U-bar)) * R
 Weekly rates are derived as `(1 + R_annual)^(1/52) - 1`, and the final LP fee is the weekly rate multiplied by the transaction size.
 
 <Callout type="info">
-  **When are LP fees zero?** If the relayer takes repayment on the origin chain (same chain as the deposit), no cross-chain rebalancing is needed, so LP fees are zero. Non-zero fees apply when repayment occurs on a different chain.
+  **When are LP fees zero?** If the relayer takes repayment on the origin chain (same chain as the deposit), no crosschain rebalancing is needed, so LP fees are zero. Non-zero fees apply when repayment occurs on a different chain.
 </Callout>
 
 ### Per-Route Parameters
