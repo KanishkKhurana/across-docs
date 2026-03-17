@@ -15,9 +15,13 @@ npx skills add https://github.com/across-protocol/skills --yes
 
 Compatible with **Claude Code**, **Codex**, **Cursor**, **Openclaw**, and more.
 
-<Callout type="info">
-  The `skills` CLI automatically detects your agent framework and installs the right configuration. No manual setup required.
-</Callout>
+## Connect to the Across MCP Server
+
+```text title="MCP Server URL"
+https://mcp.across.to/mcp
+```
+
+Add this URL to any MCP-compatible client — **Claude Desktop**, **Claude Code**, **Cursor**, **VS Code Copilot**, **Windsurf**, **Codex**.
 
 ---
 
@@ -39,6 +43,15 @@ Once installed, your AI agent can:
 | Codex | Supported |
 | Cursor | Supported |
 | Openclaw | Supported |
+
+### Two ways to connect
+
+| Approach | Best for | Setup |
+|----------|----------|-------|
+| **Skills CLI** (`npx skills add`) | Claude Code, Codex, Cursor, Openclaw | One command — installs tool definitions directly into your agent config |
+| **[MCP Server](/docs/ai-agents/mcp-server)** | Claude Desktop, Cursor, Windsurf, VS Code Copilot, Codex | Point your client at `https://mcp.across.to/mcp` — search docs, query chains, get live bridge fees |
+
+Use both together or pick whichever fits your workflow.
 
 ### How it works
 
@@ -66,6 +79,9 @@ The agent will discover chains, look up token addresses, fetch a quote, handle a
 ### Explore
 
 <Cards>
+  <Card title="MCP Server" href="/docs/ai-agents/mcp-server">
+    Search docs, query chains, and get live bridge fees from any MCP-compatible client. Hosted at mcp.across.to.
+  </Card>
   <Card title="Machine-Readable Docs" href="/docs/ai-agents/llms-txt">
     Feed Across documentation to agents and RAG pipelines via llms.txt endpoints.
   </Card>

@@ -2,5 +2,5 @@
   "title": "AI Agents",
   "root": true,
   "icon": "Bot",
-  "pages": ["index", "llms-txt", "agents-md", "prompt-library", "agent-examples"]
+  "pages": ["index", "mcp-server", "llms-txt", "agents-md", "prompt-library", "agent-examples"]
 }

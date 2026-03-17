@@ -1,0 +1,220 @@
+---
+title: MCP Server
+icon: Server
+description: Give any MCP-compatible AI client full access to Across Protocol documentation, chain data, and live bridge fees.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
+
+## What is MCP?
+
+The [Model Context Protocol (MCP)](https://modelcontextprotocol.io) is an open standard that lets AI applications connect to external tools and data sources through a unified interface. The Across MCP server indexes Across documentation and exposes tools for searching docs, querying supported chains, fetching live bridge fees, and retrieving code examples — all from within your AI client.
+
+<Callout type="info">
+  **Hosted instance available** — no local setup required. Point your client at `https://mcp.across.to/mcp` and you're ready to go.
+</Callout>
+
+## Connect to the Hosted Server
+
+The fastest way to get started is to connect your AI client to the hosted MCP server.
+
+<Tabs items={["Claude Desktop", "Claude Code", "Cursor", "VS Code Copilot", "Windsurf", "Codex"]}>
+  <Tab value="Claude Desktop">
+    Edit your Claude Desktop config file:
+
+    - **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
+    - **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
+    - **Linux**: `~/.config/Claude/claude_desktop_config.json`
+
+    ```json title="claude_desktop_config.json"
+    {
+      "mcpServers": {
+        "across-docs": {
+          "url": "https://mcp.across.to/mcp"
+        }
+      }
+    }
+    ```
+
+    Restart Claude Desktop after saving. The Across tools will appear in the tool picker.
+  </Tab>
+
+  <Tab value="Claude Code">
+    ```bash title="terminal"
+    claude mcp add --transport http across-docs https://mcp.across.to/mcp
+    ```
+
+    Or add to your project's `.mcp.json`:
+
+    ```json title=".mcp.json"
+    {
+      "mcpServers": {
+        "across-docs": {
+          "url": "https://mcp.across.to/mcp"
+        }
+      }
+    }
+    ```
+  </Tab>
+
+  <Tab value="Cursor">
+    Create or edit `.cursor/mcp.json` in your project (or `~/.cursor/mcp.json` for global):
+
+    ```json title=".cursor/mcp.json"
+    {
+      "mcpServers": {
+        "across-docs": {
+          "url": "https://mcp.across.to/mcp"
+        }
+      }
+    }
+    ```
+  </Tab>
+
+  <Tab value="VS Code Copilot">
+    Add to `.vscode/settings.json`:
+
+    ```json title="settings.json"
+    {
+      "mcp": {
+        "servers": {
+          "across-docs": {
+            "url": "https://mcp.across.to/mcp"
+          }
+        }
+      }
+    }
+    ```
+  </Tab>
+
+  <Tab value="Windsurf">
+    Add to `~/.windsurf/mcp.json`:
+
+    ```json title="mcp.json"
+    {
+      "mcpServers": {
+        "across-docs": {
+          "url": "https://mcp.across.to/mcp"
+        }
+      }
+    }
+    ```
+  </Tab>
+
+  <Tab value="Codex">
+    Add to your MCP config:
+
+    ```json title="mcp.json"
+    {
+      "mcpServers": {
+        "across-docs": {
+          "url": "https://mcp.across.to/mcp"
+        }
+      }
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## Available Tools
+
+Once connected, your AI agent has access to seven tools:
+
+| Tool | Description |
+|------|-------------|
+| `search_across_docs` | Full-text search across all Across documentation |
+| `get_page` | Retrieve a complete documentation page by path |
+| `get_api_reference` | Browse REST API endpoints and their parameters |
+| `get_supported_chains` | List mainnet and testnet chains with chain IDs |
+| `get_bridge_fees` | Query live bridge fees from the Across API |
+| `get_code_examples` | Get SDK and integration code samples |
+| `recrawl_docs` | Force a documentation refresh |
+
+## Example Prompts
+
+Once configured, you can ask your AI agent things like:
+
+```
+Search the Across docs for how to do a crosschain swap
+```
+
+```
+What chains does Across Protocol support?
+```
+
+```
+What are the bridge fees to send USDC from Ethereum to Arbitrum?
+```
+
+```
+Show me code examples for using the Across SDK
+```
+
+```
+Show me the Across API endpoint for suggested fees
+```
+
+```
+How do I run an Across relayer?
+```
+
+## Self-Hosting
+
+If you prefer to run the server locally instead of using the hosted instance:
+
+```bash title="terminal"
+git clone https://github.com/across-protocol/mcp-server-across.git
+cd mcp-server-across
+npm install
+npm run build
+```
+
+Then point your client to the local build:
+
+<Tabs items={["Claude Desktop", "Claude Code"]}>
+  <Tab value="Claude Desktop">
+    ```json title="claude_desktop_config.json"
+    {
+      "mcpServers": {
+        "across-docs": {
+          "command": "node",
+          "args": ["/absolute/path/to/mcp-server-across/dist/index.js"]
+        }
+      }
+    }
+    ```
+  </Tab>
+
+  <Tab value="Claude Code">
+    ```bash title="terminal"
+    claude mcp add across-docs node /absolute/path/to/mcp-server-across/dist/index.js
+    ```
+  </Tab>
+</Tabs>
+
+The server caches documentation locally at `~/.across-mcp/cache.json` and refreshes every 24 hours.
+
+### Docker
+
+```bash title="terminal"
+docker build -t mcp-server-across .
+docker run -i mcp-server-across
+```
+
+With cache persistence:
+
+```bash title="terminal"
+docker run -i -v across-mcp-cache:/root/.across-mcp mcp-server-across
+```
+
+### Development
+
+```bash title="terminal"
+npm run dev                                                    # watch mode
+npx @modelcontextprotocol/inspector node dist/index.js         # test with MCP Inspector UI
+```
+
+## Source Code
+
+The MCP server is open source: [github.com/across-protocol/mcp-server-across](https://github.com/across-protocol/mcp-server-across)
