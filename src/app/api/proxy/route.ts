@@ -36,13 +36,18 @@ async function handler(req: NextRequest) {
 
   try {
     const hasBody = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method);
+
+    // Forward safe headers from the client request (e.g. Authorization).
+    const forwardHeaders = new Headers();
+    const authorization = req.headers.get('authorization');
+    if (authorization) forwardHeaders.set('Authorization', authorization);
+    if (hasBody) forwardHeaders.set('Content-Type', 'application/json');
+
     const upstream = await fetch(parsed.toString(), {
       method: req.method,
       cache: 'no-cache',
-      ...(hasBody && {
-        headers: { 'Content-Type': 'application/json' },
-        body: await req.arrayBuffer(),
-      }),
+      headers: forwardHeaders,
+      ...(hasBody && { body: await req.arrayBuffer() }),
     });
 
     // Buffer the body — streaming a ReadableStream from fetch() into a new
