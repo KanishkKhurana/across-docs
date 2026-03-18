@@ -16,7 +16,7 @@
     "---Bridgeable Routes and Limits---",
     "/available-routes/get.mdx",
     "/limits/get.mdx",
-    "---Suggested Fees API---",
+    "---Suggested Fees API (Legacy)---",
     "/suggested-fees/get.mdx"
   ]
 }
