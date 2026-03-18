@@ -4,38 +4,43 @@ export const maxDuration = 60;
 
 const ALLOWED_ORIGINS = ['https://app.across.to', 'https://testnet.across.to'];
 
-function isAllowedUrl(url: string): boolean {
-  return ALLOWED_ORIGINS.some((origin) => url.startsWith(origin));
-}
+async function handler(request: NextRequest): Promise<Response> {
+  const url = request.nextUrl.searchParams.get('url');
+  if (!url) return Response.json('[Proxy] A `url` query parameter is required', { status: 400 });
 
-async function proxyRequest(request: NextRequest): Promise<Response> {
-  const targetUrl = request.nextUrl.searchParams.get('url');
+  const parsedUrl = URL.parse(url);
+  if (!parsedUrl) return Response.json('[Proxy] Invalid `url` parameter value.', { status: 400 });
+  if (!ALLOWED_ORIGINS.includes(parsedUrl.origin))
+    return Response.json(`[Proxy] The origin "${parsedUrl.origin}" is not allowed.`, { status: 400 });
 
-  if (!targetUrl || !isAllowedUrl(targetUrl)) {
-    return new Response('Invalid or disallowed URL', { status: 400 });
-  }
+  // Forward all original headers (same as fumadocs proxy)
+  const headers = new Headers(request.headers);
+  headers.delete('origin');
+  headers.delete('host');
 
-  const headers: HeadersInit = {
-    'user-agent':
-      'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
-  };
-  const auth = request.headers.get('authorization');
-  if (auth) headers['authorization'] = auth;
-  const contentType = request.headers.get('content-type');
-  if (contentType) headers['content-type'] = contentType;
+  const contentLength = request.headers.get('content-length');
+  const hasBody = contentLength && parseInt(contentLength) > 0;
 
-  const res = await fetch(targetUrl, {
+  const res = await fetch(parsedUrl, {
     method: request.method,
+    cache: 'no-cache',
     headers,
-    body: ['GET', 'HEAD'].includes(request.method) ? undefined : await request.text(),
+    body:
+      hasBody && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(request.method.toUpperCase())
+        ? await request.arrayBuffer()
+        : undefined,
   });
 
-  // Buffer the entire response to avoid streaming issues on Vercel
+  // Buffer full response to avoid Vercel streaming issues with large payloads
   const body = await res.arrayBuffer();
 
   const responseHeaders = new Headers(res.headers);
   responseHeaders.delete('content-encoding');
   responseHeaders.delete('content-length');
+  responseHeaders.forEach((_value, key) => {
+    if (key.toLowerCase().startsWith('access-control-')) responseHeaders.delete(key);
+  });
+  responseHeaders.set('X-Forwarded-Host', res.url);
 
   return new Response(body, {
     status: res.status,
@@ -44,9 +49,9 @@ async function proxyRequest(request: NextRequest): Promise<Response> {
   });
 }
 
-export const GET = proxyRequest;
-export const POST = proxyRequest;
-export const PUT = proxyRequest;
-export const DELETE = proxyRequest;
-export const PATCH = proxyRequest;
-export const HEAD = proxyRequest;
+export const GET = handler;
+export const POST = handler;
+export const PUT = handler;
+export const DELETE = handler;
+export const PATCH = handler;
+export const HEAD = handler;
