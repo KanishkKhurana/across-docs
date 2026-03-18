@@ -30,8 +30,8 @@ jobs:
       - name: Sync API schema with live endpoints
         run: pnpm sync:api:update
 
-      - name: Regenerate API docs from updated spec (local — uses synced YAML)
-        run: pnpm generate:api:local
+      - name: Regenerate API docs from updated spec
+        run: pnpm generate:api
 
       - name: Read sync summary for PR body
         id: summary

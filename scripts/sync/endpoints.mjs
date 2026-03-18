@@ -111,5 +111,24 @@ export const endpoints = [
       'paths./deposits.get.responses.200.content.application/json.schema',
     usesRef: false,
   },
-  // POST /swap/approval is skipped — requires wallet interaction
+  {
+    name: 'GET /swap/approval',
+    method: 'GET',
+    path: '/swap/approval',
+    calls: [
+      {
+        originChainId: '42161',
+        destinationChainId: '8453',
+        inputToken: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+        outputToken: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
+        amount: '100000000',
+        depositor: '0x9A8f92a830A5cB89a3816e3D267CB7791c16b04D',
+        tradeType: 'minOutput',
+      },
+    ],
+    schemaPath:
+      'paths./swap/approval.get.responses.200.content.application/json.schema',
+    usesRef: false,
+  },
+  // POST /swap/approval is skipped — requires wallet-signed actions in the body
 ];

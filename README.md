@@ -16,49 +16,45 @@ Open http://localhost:3000 to see the docs.
 | Path | Description |
 |---|---|
 | `content/docs/` | Documentation content (MDX + meta.json) |
-| `content/openapi/api-reference.yaml` | OpenAPI spec (auto-synced) |
-| `app/(home)` | Landing page and other pages |
-| `app/docs` | Documentation layout and pages |
-| `app/api/search/route.ts` | Search route handler |
-| `lib/source.ts` | Content source adapter |
-| `lib/layout.shared.tsx` | Shared layout options |
+| `content/openapi/api-reference.yaml` | OpenAPI spec — **source of truth** for all API reference docs |
+| `src/app/(home)` | Landing page |
+| `src/app/(docs)` | Documentation layout and pages |
+| `src/app/api/chat/route.ts` | AI chat assistant route |
+| `src/app/api/proxy/route.ts` | API playground proxy (avoids CORS) |
+| `src/lib/source.ts` | Content source adapter |
+| `src/lib/layout.shared.tsx` | Shared layout options |
 | `source.config.ts` | Fumadocs MDX config and frontmatter schema |
 | `scripts/` | Build and sync scripts |
 
 ## API Reference Docs
 
-The API reference is generated from an OpenAPI spec sourced from the upstream [`across-protocol/api-reference`](https://github.com/across-protocol/api-reference) repo. Two scripts manage this:
+The API reference is generated from `content/openapi/api-reference.yaml`. This local file is the **single source of truth** — there is no upstream fetch. All changes to the API spec happen via PRs to this file.
 
 ### Generating docs from the spec
 
 ```bash
-# Fetch upstream YAML, patch, save, and generate MDX
 pnpm generate:api
-
-# Generate MDX from existing local YAML (no fetch — use after sync:api:update)
-pnpm generate:api:local
 ```
 
-`generate:api` fetches the upstream YAML, applies patches (3 indentation bugs + securitySchemes injection), saves it locally, and generates MDX pages via fumadocs-openapi. Use `generate:api:local` when you've already updated the YAML (e.g. after `sync:api:update`) and just want to regenerate MDX without re-fetching.
+This reads the local YAML, generates MDX pages via fumadocs-openapi, injects legacy callouts on deprecated endpoints (`/suggested-fees`, `/available-routes`), and patches `meta.json` with the correct nav config. It runs automatically as a prebuild step (`pnpm build` triggers it).
 
 ### Syncing the spec with the live API
 
-The upstream spec chronically lags behind the live API — missing new response fields, stale types, and 4 endpoints with no response schema at all. The sync script fixes this automatically.
+The spec can drift from what the live API actually returns — new response fields, changed types, missing schemas. The sync script detects and fixes this automatically by calling the real APIs.
 
 #### How it works
 
-1. Fetches the **fresh upstream YAML** from GitHub
-2. Applies the indentation/security patches via `patchSpec()`
-3. Calls all 8 live API endpoints with hardcoded sample params
-4. Infers OpenAPI schemas from the real responses
-5. Diffs inferred schemas vs existing YAML schemas
-6. **Adds** new fields — each field gets:
+1. Reads the **local YAML** spec
+2. Calls all live API endpoints with sample params (9 GET endpoints including `/swap/approval`, `/swap/chains`, `/swap/tokens`, `/suggested-fees`, `/limits`, `/deposit/status`, `/deposits`, `/available-routes`, `/swap/sources`)
+3. Infers OpenAPI schemas from the real responses
+4. Diffs inferred schemas against the existing YAML schemas
+5. **Adds** new fields — each field gets:
    - `type` inferred from the live JSON value
    - `description` auto-generated from the field name (e.g. `estimatedFillTimeSec` → "Estimated fill time in seconds")
    - `example` captured from the actual API response
    - `x-auto-generated: true` marker so reviewers know what was added automatically
-7. **Never removes fields** and **never changes types** — flags both for human review
-8. Writes the merged YAML back and generates a markdown summary for the PR body
+6. **Never removes fields** and **never changes types** — flags both for human review
+7. Writes the merged YAML back and generates a markdown summary for the PR body
 
 #### Auto-generated descriptions
 
@@ -77,12 +73,12 @@ These are starting points — reviewers should refine them before merging. All a
 
 #### Auto-populated examples
 
-Example values are captured directly from the live API response. Rules:
+Example values are captured directly from the live API response:
 
 - Primitive types (string, number, integer, boolean) get an `example` value
-- Strings longer than 120 characters are skipped (too noisy)
+- Strings longer than 120 characters are skipped
 - Objects and arrays don't get top-level examples (their children have their own)
-- When multiple responses are merged (e.g. from multiple API calls), the first observed value is kept
+- When multiple responses are merged, the first observed value is kept
 
 #### Conservative merge rules
 
@@ -100,15 +96,12 @@ Example values are captured directly from the live API response. Rules:
 pnpm sync:api:report
 
 # Apply changes to YAML, then regenerate MDX docs
-pnpm sync:api:update && pnpm generate:api:local
+pnpm sync:api:update && pnpm generate:api
 ```
-
-Note: use `generate:api:local` (not `generate:api`) after syncing. The `--local` flag tells the generate script to use the existing YAML on disk instead of re-fetching upstream, which would overwrite the sync changes.
 
 | Script | What it does |
 |---|---|
-| `pnpm generate:api` | Fetches upstream YAML, patches it, writes to disk, generates MDX |
-| `pnpm generate:api:local` | Generates MDX from the existing local YAML (no fetch, no overwrite) |
+| `pnpm generate:api` | Generates MDX from the local YAML spec |
 | `pnpm sync:api:report` | Read-only drift report against the live API |
 | `pnpm sync:api:update` | Merges live API changes into the local YAML |
 
@@ -116,8 +109,8 @@ Note: use `generate:api:local` (not `generate:api`) after syncing. The `--local`
 
 The workflow at `.github/workflows/sync-api-schema.yml` runs **daily at 6 AM UTC** (also triggerable manually from the Actions tab). It:
 
-1. Runs `pnpm sync:api:update` — fetches upstream spec, patches, calls live endpoints, merges new fields into YAML
-2. Runs `pnpm generate:api:local` — regenerates MDX from the updated YAML (uses `--local` to preserve sync changes)
+1. Runs `pnpm sync:api:update` — reads the local spec, calls live endpoints, merges new fields into YAML
+2. Runs `pnpm generate:api` — regenerates MDX from the updated YAML
 3. If any files changed, opens a **PR** on branch `auto/sync-api-schema`
 4. PR body includes a rich markdown summary with:
    - Per-endpoint breakdown of added fields with types and example values
@@ -148,13 +141,12 @@ Multiple `calls` entries can be added to maximize field coverage for endpoints w
 
 | File | Purpose |
 |---|---|
-| `scripts/shared/patch-spec.mjs` | Shared `patchSpec()` — fixes 3 upstream YAML indentation bugs + injects `securitySchemes` |
+| `scripts/generate-docs.mjs` | Reads local spec, generates MDX, injects legacy callouts |
 | `scripts/sync/index.mjs` | Orchestrator CLI (`--mode=report` or `--mode=update`), generates markdown summary |
-| `scripts/sync/endpoints.mjs` | Endpoint config with sample params for all 8 GET endpoints |
+| `scripts/sync/endpoints.mjs` | Endpoint config with sample params for all 9 GET endpoints |
 | `scripts/sync/infer-schema.mjs` | JSON response → OpenAPI schema inference, captures examples |
 | `scripts/sync/diff-merge.mjs` | Schema differ + conservative merger, auto-generates descriptions |
 | `scripts/sync/call-api.mjs` | HTTP client with 15s timeout, 2 retries, skips 4xx |
-| `scripts/generate-docs.mjs` | Fetches upstream spec, patches, generates MDX (supports `--local` flag) |
 | `.github/workflows/sync-api-schema.yml` | Daily cron + manual trigger, opens PR with sync changes |
 
 ## Learn More

@@ -2,14 +2,12 @@ import { readFileSync, writeFileSync, mkdirSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import YAML from 'yaml';
-import { patchSpec } from '../shared/patch-spec.mjs';
 import { endpoints } from './endpoints.mjs';
 import { callApi } from './call-api.mjs';
 import { inferSchema, inferFromMultipleResponses } from './infer-schema.mjs';
 import { diffSchemas, mergeIntoDocument, refToPointer } from './diff-merge.mjs';
 
-const SPEC_URL =
-  'https://raw.githubusercontent.com/across-protocol/api-reference/master/api-reference.yaml';
+// The local spec is the source of truth — no upstream fetch.
 const LOCAL_SPEC = './content/openapi/api-reference.yaml';
 const REPORT_PATH = './scripts/sync/last-sync-report.json';
 const SUMMARY_PATH = './scripts/sync/last-sync-summary.md';
@@ -24,23 +22,16 @@ function parseArgs() {
   return { mode };
 }
 
-async function fetchUpstreamSpec() {
-  console.log(`Fetching upstream spec from ${SPEC_URL}...`);
-  const response = await fetch(SPEC_URL);
-  if (!response.ok) throw new Error(`Failed to fetch spec: ${response.status}`);
-  const text = await response.text();
-  return patchSpec(text);
-}
-
 async function main() {
   const { mode } = parseArgs();
   console.log(`\nAPI Schema Sync — mode: ${mode}\n`);
 
-  // 1. Fetch upstream YAML + apply patches
-  const patchedYaml = await fetchUpstreamSpec();
+  // 1. Read the local spec (source of truth)
+  console.log(`Reading local spec from ${LOCAL_SPEC}...`);
+  const localYaml = readFileSync(LOCAL_SPEC, 'utf-8');
 
   // 2. Parse with yaml.parseDocument() (preserves structure)
-  const doc = YAML.parseDocument(patchedYaml);
+  const doc = YAML.parseDocument(localYaml);
 
   const report = {
     timestamp: new Date().toISOString(),
