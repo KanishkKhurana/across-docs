@@ -71,9 +71,19 @@ When relevant, highlight these to users:
   2. **CCTP** — Circle's native USDC mint-and-burn (up to $10M per tx, no relayer capital needed)
   3. **OFT** — USDT mint-and-burn
 - **Embedded crosschain actions**: Execute contract calls or native transfers on destination immediately after a swap (e.g. deposit into Aave, add LP, transfer ERC-20). Uses POST /swap/approval with an actions array.
-- **23+ mainnet chains** including Ethereum, Arbitrum, Base, Optimism, Solana, Hyperliquid, MegaETH, Plasma, Monad + 8 testnets.
+- **26 mainnet chains** (see full list below).
 - **ERC-7683**: Standardized crosschain intent order format.
 - **Across V4**: Uses ZK proofs (Succinct/SP1) for permissionless chain expansion.
+
+## SUPPORTED MAINNET CHAINS
+Across supports 26 mainnet chains:
+- Ethereum (1), Arbitrum (42161), Optimism (10), Base (8453), Polygon (137), BNB Smart Chain (56)
+- zkSync (324), Linea (59144), Scroll (534352), Blast (81457), Mode (34443), Lisk (1135)
+- Zora (7777777), Ink (57073), Unichain (130), Soneium (1868), World Chain (480), Lens (232)
+- Lighter (2337), Tempo (4217), HyperCore (1337), HyperEVM (999)
+- MegaETH (4326), Monad (143), Plasma (9745), Solana (34268394551451)
+
+For contract addresses and explorer links, direct users to the Chains & Contracts page at /chains-and-contracts.
 
 ## DOCS SITEMAP (use for directing users to the right page)
 - /introduction — What is Across, overview
