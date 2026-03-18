@@ -277,6 +277,39 @@ export function patchSpec(yaml) {
 
 
 
+  // --- Patch: Add bearerAuth security scheme ---
+  // Inject global security requirement after the servers block
+  if (!result.includes('security:\n  - bearerAuth:')) {
+    result = result.replace(
+      /^(servers:\n(?:  - url: [^\n]+\n)+)/m,
+      '$1security:\n  - bearerAuth: []\n',
+    );
+    patchCount++;
+    console.log('  Patched: added global security (bearerAuth)');
+  }
+
+  // Inject securitySchemes into components (or create components block)
+  if (!result.includes('securitySchemes:')) {
+    const securitySchemes = [
+      '  securitySchemes:',
+      '    bearerAuth:',
+      '      type: http',
+      '      scheme: bearer',
+      '      description: API key for authentication. Request your key at https://t.me/acrosstg.',
+    ].join('\n');
+
+    if (result.includes('components:')) {
+      result = result.replace(
+        'components:',
+        `components:\n${securitySchemes}`,
+      );
+    } else {
+      result += `\ncomponents:\n${securitySchemes}\n`;
+    }
+    patchCount++;
+    console.log('  Patched: added securitySchemes.bearerAuth');
+  }
+
   if (patchCount === 0) {
     console.warn(
       'Warning: no patch targets found — the upstream spec may have been fixed.',
