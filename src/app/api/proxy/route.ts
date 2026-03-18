@@ -15,7 +15,10 @@ async function proxyRequest(request: NextRequest): Promise<Response> {
     return new Response('Invalid or disallowed URL', { status: 400 });
   }
 
-  const headers: HeadersInit = {};
+  const headers: HeadersInit = {
+    'user-agent':
+      'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+  };
   const auth = request.headers.get('authorization');
   if (auth) headers['authorization'] = auth;
   const contentType = request.headers.get('content-type');
