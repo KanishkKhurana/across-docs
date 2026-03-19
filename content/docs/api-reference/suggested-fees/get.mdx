@@ -25,14 +25,4 @@ import { Callout } from 'fumadocs-ui/components/callout';
   **Legacy:** The `/suggested-fees` API is no longer actively maintained. New integrations should use the [Swap API](/api-reference/swap/approval/get) instead.
 </Callout>
 
-<Callout type="info">
-  **API key required for production.** All requests must include a Bearer token in the `Authorization` header:
-
-  ```
-  Authorization: Bearer <your-api-key>
-  ```
-
-  [Request your API key and integrator ID now](https://t.me/acrosstg)
-</Callout>
-
 <APIPage document={"./content/openapi/api-reference.yaml"} operations={[{"path":"/suggested-fees","method":"get"}]} />
