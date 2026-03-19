@@ -6,13 +6,6 @@ import { join } from 'path';
 const LOCAL_SPEC = './content/openapi/api-reference.yaml';
 const OUTPUT_DIR = './content/docs/api-reference';
 
-// Legacy API endpoints that need a deprecation callout injected after generation.
-// Keys are file paths relative to OUTPUT_DIR, values are the endpoint name for the message.
-const LEGACY_CALLOUTS = {
-  'suggested-fees/get.mdx': '/suggested-fees',
-  'available-routes/get.mdx': '/available-routes',
-};
-
 async function main() {
   if (!existsSync(LOCAL_SPEC)) {
     throw new Error(
@@ -31,34 +24,7 @@ async function main() {
     per: 'operation',
   });
 
-  // 2. Inject legacy callouts into generated MDX files
-  for (const [relPath, endpoint] of Object.entries(LEGACY_CALLOUTS)) {
-    const filePath = join(OUTPUT_DIR, relPath);
-    if (!existsSync(filePath)) {
-      console.warn(`  Skipped callout: ${relPath} not found`);
-      continue;
-    }
-    let content = readFileSync(filePath, 'utf-8');
-    const callout = [
-      '',
-      "import { Callout } from 'fumadocs-ui/components/callout';",
-      '',
-      '<Callout type="warn">',
-      `  **Legacy:** The \`${endpoint}\` API is no longer actively maintained. New integrations should use the [Swap API](/api-reference/swap/approval/get) instead.`,
-      '</Callout>',
-      '',
-    ].join('\n');
-    // Find the second --- (end of frontmatter) and inject after it
-    const fmEnd = content.indexOf('---', content.indexOf('---') + 3);
-    if (fmEnd !== -1) {
-      const insertAt = fmEnd + 3;
-      content = content.slice(0, insertAt) + callout + content.slice(insertAt);
-      writeFileSync(filePath, content);
-      console.log(`  Injected legacy callout: ${relPath}`);
-    }
-  }
-
-  // 3. Restore root + icon in meta.json (generateFiles overwrites it)
+  // 2. Restore root + icon in meta.json (generateFiles overwrites it)
   const metaPath = join(OUTPUT_DIR, 'meta.json');
   const meta = JSON.parse(readFileSync(metaPath, 'utf-8'));
   meta.root = true;
