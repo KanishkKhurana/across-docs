@@ -11,7 +11,7 @@ import { Step, Steps } from 'fumadocs-ui/components/steps';
 Embedded crosschain actions let you compose arbitrary destination-chain operations — token transfers, DeFi deposits, contract calls — into a single crosschain transaction via the Swap API. Instead of bridging first and then executing separately, the user submits one transaction and everything happens atomically on the destination.
 
 <Callout type="warn">
-  **API key required for production.** [Request your API key and integrator ID](/docs/introduction/api-keys) or [reach out on Telegram](https://t.me/acrosstg).
+  **API key required for production.** [Request your API key and integrator ID](/introduction/api-keys) or [reach out on Telegram](https://t.me/acrosstg).
 </Callout>
 
 ## How It Works
@@ -145,25 +145,25 @@ const response = await fetch(
 ```
 
 <Callout type="info">
-  The `recipient` parameter should be set to the **MulticallHandler** contract address on the destination chain. This is the contract that executes your actions. See [contract addresses](/docs/api-reference) for each chain.
+  The `recipient` parameter should be set to the **MulticallHandler** contract address on the destination chain. This is the contract that executes your actions. See [contract addresses](/api-reference) for each chain.
 </Callout>
 
 ## Examples
 
 <Cards>
-  <Card title="Transfer ERC-20 Tokens" href="/docs/introduction/embedded-actions/transfer-erc20">
+  <Card title="Transfer ERC-20 Tokens" href="/introduction/embedded-actions/transfer-erc20">
     Transfer swapped tokens to a different address on the destination chain.
   </Card>
-  <Card title="Deposit ETH into Aave" href="/docs/introduction/embedded-actions/deposit-eth-aave">
+  <Card title="Deposit ETH into Aave" href="/introduction/embedded-actions/deposit-eth-aave">
     Swap to ETH and deposit directly into Aave's lending pool.
   </Card>
-  <Card title="Add HubPool Liquidity" href="/docs/introduction/embedded-actions/hubpool-liquidity">
+  <Card title="Add HubPool Liquidity" href="/introduction/embedded-actions/hubpool-liquidity">
     Swap to ETH and add liquidity to the Across HubPool in one transaction.
   </Card>
-  <Card title="Simple ETH Transfer" href="/docs/introduction/embedded-actions/native-eth-transfer">
+  <Card title="Simple ETH Transfer" href="/introduction/embedded-actions/native-eth-transfer">
     Send native ETH to an address after a crosschain swap.
   </Card>
-  <Card title="Nested Parameters" href="/docs/introduction/embedded-actions/nested-parameters">
+  <Card title="Nested Parameters" href="/introduction/embedded-actions/nested-parameters">
     Handle tuple and struct parameters in function signatures.
   </Card>
 </Cards>

@@ -10,7 +10,7 @@ import { Step, Steps } from 'fumadocs-ui/components/steps';
 In this guide you'll build a complete crosschain bridge that sends **1 USDC from Arbitrum to Base** using the Across Swap API and viem. We'll start from zero — discovering supported chains, looking up token addresses, fetching a quote, and executing the transaction.
 
 <Callout type="warn">
-  **API key required for production.** [Request your API key and integrator ID](/docs/introduction/api-keys) or [reach out on Telegram](https://t.me/acrosstg).
+  **API key required for production.** [Request your API key and integrator ID](/introduction/api-keys) or [reach out on Telegram](https://t.me/acrosstg).
 </Callout>
 
 ## Prerequisites
@@ -469,7 +469,7 @@ Step 5: Sending bridge transaction...
 
 ## Next Steps
 
-- **Track the deposit** — poll `/deposit/status` to confirm the fill. See [Tracking Deposits](/docs/introduction/tracking-deposits).
-- **Add an integrator ID** — required for production. See the [Swap API reference](/docs/introduction/swap-api#integrator-id).
+- **Track the deposit** — poll `/deposit/status` to confirm the fill. See [Tracking Deposits](/introduction/tracking-deposits).
+- **Add an integrator ID** — required for production. See the [Swap API reference](/introduction/swap-api#integrator-id).
 - **Handle errors** — check `quote.swapTx.simulationSuccess` before sending, and handle `checks.balance` to show a "not enough funds" message.
-- **Add embedded actions** — execute operations on the destination chain after the bridge. See [Crosschain Deposit into Aave](/docs/guides/dev-guides/crosschain-aave-deposit).
+- **Add embedded actions** — execute operations on the destination chain after the bridge. See [Crosschain Deposit into Aave](/guides/dev-guides/crosschain-aave-deposit).

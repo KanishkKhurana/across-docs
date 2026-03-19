@@ -14,7 +14,7 @@ Across implements crosschain intents through a **three-layer architecture**. Eac
 
 The RFQ layer houses user intents. Users submit their desired outcome — input token, output token, chains, amounts — and receive quotes from the relayer network.
 
-The current implementation uses **fixed fees** with relayer competition strictly based on **speed**. The [Swap API](/docs/introduction/swap-api) is the primary RFQ interface.
+The current implementation uses **fixed fees** with relayer competition strictly based on **speed**. The [Swap API](/introduction/swap-api) is the primary RFQ interface.
 
 RFQ systems exist externally to the core protocol. Across can support any auction mechanism that produces transactions or signed orders recognized by the SpokePool infrastructure.
 
@@ -68,5 +68,5 @@ A key architectural advantage: relayers can request repayment on **any supported
 3. **Relayer capital costs drop** — relayers can optimize their treasury across chains without needing balanced liquidity everywhere
 
 <Callout type="info">
-  The modular design means each layer can evolve independently. New RFQ mechanisms, new relayer strategies, and new settlement approaches (like [Across V4's ZK proofs](/docs/guides/concepts/across-v4)) can be added without disrupting the rest of the system.
+  The modular design means each layer can evolve independently. New RFQ mechanisms, new relayer strategies, and new settlement approaches (like [Across V4's ZK proofs](/guides/concepts/across-v4)) can be added without disrupting the rest of the system.
 </Callout>

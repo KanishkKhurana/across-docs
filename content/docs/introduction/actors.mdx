@@ -13,8 +13,8 @@ Across is a multi-actor system where each participant plays a distinct role in m
 Users initiate crosschain transfers by submitting deposit orders to a SpokePool on the origin chain. They pay fees to relayers and liquidity providers in exchange for near-instant token delivery on the destination chain.
 
 Users interact with the protocol through:
-- The [Swap API](/docs/introduction/swap-api) (most common)
-- [ERC-7683](/docs/introduction/erc-7683) `open()` calls
+- The [Swap API](/introduction/swap-api) (most common)
+- [ERC-7683](/guides/concepts/erc-7683) `open()` calls
 - Direct `depositV3()` calls on SpokePool contracts
 
 ## Relayer
@@ -65,7 +65,7 @@ LPs deposit assets into pools on Ethereum mainnet at [across.to/pool](https://ac
 
 ### LP Fee Model
 
-LPs earn fees based on pool utilization — the more the pool is used for crosschain rebalancing, the higher the LP fee percentage. See [Fees in the System](/docs/introduction/fees) for details on the utilization-based pricing model.
+LPs earn fees based on pool utilization — the more the pool is used for crosschain rebalancing, the higher the LP fee percentage. See [Fees in the System](/introduction/fees) for details on the utilization-based pricing model.
 
 ## Dataworker
 
@@ -113,4 +113,4 @@ The UMA Optimistic Oracle provides the economic security layer for Across. It ve
 
 The system only needs **a single honest actor** willing to dispute invalid proposals to remain secure. This is a much weaker trust assumption than requiring a majority of validators to be honest.
 
-See [Security Model](/docs/introduction/security) for more details on the verification and dispute process.
+See [Security Model](/introduction/security) for more details on the verification and dispute process.

@@ -8,10 +8,10 @@ import { Callout } from 'fumadocs-ui/components/callout';
 import { Step, Steps } from 'fumadocs-ui/components/steps';
 import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
 
-Across supports three independent settlement mechanisms for stablecoins: **intents** (relayer network), **CCTP V2** (native USDC), and **OFT** (native USDT0). Each is a first-class pathway — the [Swap API](/docs/introduction/swap-api) selects the optimal mechanism based on token, amount, and route.
+Across supports three independent settlement mechanisms for stablecoins: **intents** (relayer network), **CCTP V2** (native USDC), and **OFT** (native USDT0). Each is a first-class pathway — the [Swap API](/introduction/swap-api) selects the optimal mechanism based on token, amount, and route.
 
 <Callout type="warn">
-  **API key required for production.** [Request your API key and integrator ID](/docs/introduction/api-keys) or [reach out on Telegram](https://t.me/acrosstg).
+  **API key required for production.** [Request your API key and integrator ID](/introduction/api-keys) or [reach out on Telegram](https://t.me/acrosstg).
 </Callout>
 
 ## Settlement Comparison
@@ -118,7 +118,7 @@ console.log("Total fees:", quote.fees?.total);
 ## Stablecoin Contract Addresses
 
 <Callout type="info">
-  **Always verify addresses** via the [`/swap/tokens`](/docs/api-reference) endpoint. Token addresses can change as new deployments roll out.
+  **Always verify addresses** via the [`/swap/tokens`](/api-reference) endpoint. Token addresses can change as new deployments roll out.
 </Callout>
 
 <Tabs items={["USDC", "USDT0", "USDH"]}>
@@ -147,7 +147,7 @@ console.log("Total fees:", quote.fees?.total);
     |-------|---------|
     | HyperEVM (1337) | Check `/swap/tokens?chainId=1337` |
 
-    USDH is Hyperliquid's native stablecoin. Use the [Hypercore guide](/docs/introduction/hypercore) for bridging details.
+    USDH is Hyperliquid's native stablecoin. Use the [Hypercore guide](/introduction/hypercore) for bridging details.
   </Tab>
 </Tabs>
 

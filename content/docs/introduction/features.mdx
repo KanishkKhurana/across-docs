@@ -9,16 +9,16 @@ import { Card, Cards } from 'fumadocs-ui/components/card';
 
 ## Three Settlement Mechanisms
 
-Across is unique in offering three independent settlement pathways. The [Swap API](/docs/introduction/swap-api) automatically selects the optimal mechanism for each transfer.
+Across is unique in offering three independent settlement pathways. The [Swap API](/introduction/swap-api) automatically selects the optimal mechanism for each transfer.
 
 <Cards>
-  <Card title="Intents — Relayer Network" href="/docs/guides/concepts/intent-lifecycle">
+  <Card title="Intents — Relayer Network" href="/guides/concepts/intent-lifecycle">
     Sub-2-second fills via a competitive relayer network that fronts capital on the destination chain. The default pathway for most transfers.
   </Card>
-  <Card title="CCTP V2 / CCTPFast — Native USDC" href="/docs/introduction/stablecoins">
+  <Card title="CCTP V2 / CCTPFast — Native USDC" href="/introduction/stablecoins">
     Circle's Crosschain Transfer Protocol for native USDC mint-and-burn. Supports transfers up to $10M per transaction with no relayer capital required.
   </Card>
-  <Card title="OFT — Native USDT0" href="/docs/introduction/stablecoins">
+  <Card title="OFT — Native USDT0" href="/introduction/stablecoins">
     LayerZero's Omnichain Fungible Token standard for native USDT0 settlement. More OFT tokens coming soon.
   </Card>
 </Cards>
@@ -38,7 +38,7 @@ Across is unique in offering three independent settlement pathways. The [Swap AP
 
 ## Speed
 
-Across's relayer network fills most transfers in **~2 seconds** on mainnet. Relayers compete on speed, fronting their own capital on the destination chain and getting repaid later through the [settlement process](/docs/guides/concepts/intent-lifecycle).
+Across's relayer network fills most transfers in **~2 seconds** on mainnet. Relayers compete on speed, fronting their own capital on the destination chain and getting repaid later through the [settlement process](/guides/concepts/intent-lifecycle).
 
 Testnet fills take ~1 minute due to lower relayer competition.
 
@@ -51,7 +51,7 @@ Across supports **23+ mainnet chains** including:
 - **App-specific chains** — Hyperliquid (HyperCore + HyperEVM)
 - **Testnet support** — 8 testnet chains for development
 
-See the full list via the [`/swap/chains`](/docs/api-reference) endpoint.
+See the full list via the [`/swap/chains`](/api-reference) endpoint.
 
 ## Sponsored Routes
 
@@ -61,7 +61,7 @@ Check the `/swap/approval` response for fee breakdowns. Sponsored routes show `0
 
 ## Embedded Crosschain Actions
 
-Bridge and execute in one transaction. Attach arbitrary contract calls to your crosschain transfer — the [MulticallHandler](/docs/introduction/embedded-actions) executes them atomically on the destination chain.
+Bridge and execute in one transaction. Attach arbitrary contract calls to your crosschain transfer — the [MulticallHandler](/introduction/embedded-actions) executes them atomically on the destination chain.
 
 Use cases:
 - Swap + deposit into Aave
@@ -81,5 +81,5 @@ Across V4 introduces zero-knowledge proofs via Succinct's SP1 prover for settlem
 - **Reduced trust assumptions** — cryptographic verification instead of economic security
 
 <Callout type="info">
-  V4 is rolling out progressively. See [Across V4](/docs/guides/concepts/across-v4) for technical details.
+  V4 is rolling out progressively. See [Across V4](/guides/concepts/across-v4) for technical details.
 </Callout>

@@ -184,10 +184,10 @@ The `orderData` encodes all the transfer details: input/output tokens, amounts, 
   <Step>
     ### Track the Fill
 
-    Use the `/deposit/status` endpoint to verify the intent was filled on the destination chain. See [Tracking Deposits](/docs/introduction/tracking-deposits) for details.
+    Use the `/deposit/status` endpoint to verify the intent was filled on the destination chain. See [Tracking Deposits](/introduction/tracking-deposits) for details.
   </Step>
 </Steps>
 
 <Callout type="info">
-  ERC-7683 is ideal when you want **direct on-chain composability** — calling `open()` from another smart contract, building custom settlement flows, or integrating with account abstraction. For most server-side or frontend integrations, the [Swap API](/docs/introduction/swap-api) is simpler since it handles encoding, gas estimation, and approval transactions for you.
+  ERC-7683 is ideal when you want **direct on-chain composability** — calling `open()` from another smart contract, building custom settlement flows, or integrating with account abstraction. For most server-side or frontend integrations, the [Swap API](/introduction/swap-api) is simpler since it handles encoding, gas estimation, and approval transactions for you.
 </Callout>

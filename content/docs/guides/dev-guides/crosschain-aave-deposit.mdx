@@ -14,12 +14,12 @@ This is powered by **embedded crosschain actions** — instructions attached to 
 ## Prerequisites
 
 <Callout type="warn">
-  **API key required for production.** [Request your API key and integrator ID](/docs/introduction/api-keys) or [reach out on Telegram](https://t.me/acrosstg).
+  **API key required for production.** [Request your API key and integrator ID](/introduction/api-keys) or [reach out on Telegram](https://t.me/acrosstg).
 </Callout>
 
 - Node.js 20+
 - A wallet with at least 100 USDC on Arbitrum (+ gas)
-- Basic familiarity with [the Swap API](/docs/introduction/swap-api) — if you haven't read the [basic integration guide](/docs/guides/dev-guides/integrate-swap-api), start there
+- Basic familiarity with [the Swap API](/introduction/swap-api) — if you haven't read the [basic integration guide](/guides/dev-guides/integrate-swap-api), start there
 
 Install dependencies:
 
@@ -489,6 +489,6 @@ Step 5: Executing bridge + Aave deposit...
 ## Next Steps
 
 - **Try other DeFi protocols** — the same pattern works for any contract that accepts ETH or ERC-20 tokens. Change the `target`, `functionSignature`, and `args`.
-- **Use dynamic token amounts** — set `populateDynamically: true` with `balanceSourceToken` to forward the exact swapped balance for ERC-20 actions. See [Transfer ERC-20 Tokens](/docs/introduction/embedded-actions/transfer-erc20).
+- **Use dynamic token amounts** — set `populateDynamically: true` with `balanceSourceToken` to forward the exact swapped balance for ERC-20 actions. See [Transfer ERC-20 Tokens](/introduction/embedded-actions/transfer-erc20).
 - **Chain multiple actions** — add more objects to the `actions` array to execute a sequence of operations on the destination.
-- **Track the deposit** — poll `/deposit/status` to confirm everything landed. See [Tracking Deposits](/docs/introduction/tracking-deposits).
+- **Track the deposit** — poll `/deposit/status` to confirm everything landed. See [Tracking Deposits](/introduction/tracking-deposits).

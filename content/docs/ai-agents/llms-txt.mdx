@@ -21,7 +21,7 @@ Every page on this site is available in machine-readable markdown format. AI age
 
 - **Agent needs to find a page** — fetch `/llms.txt`, scan for the relevant title, then fetch that page's `.mdx` endpoint.
 - **Agent needs full context** — fetch `/llms-full.txt` and pass the entire corpus (or relevant chunks) into the context window.
-- **Agent already knows the page** — append `.mdx` to any docs URL to get raw markdown. For example, `/docs/ai-agents/llms-txt.mdx` returns this page as markdown.
+- **Agent already knows the page** — append `.mdx` to any docs URL to get raw markdown. For example, `/ai-agents/llms-txt.mdx` returns this page as markdown.
 
 <Callout type="info">
   The `/llms-full.txt` endpoint is large. If your agent has a limited context window, prefer `/llms.txt` to find the right page and then fetch it individually via `.mdx`.
@@ -83,12 +83,12 @@ Every page on this site is available in machine-readable markdown format. AI age
   <Tab value="curl">
     ```bash title="terminal"
     # Fetch the Swap API docs as markdown
-    curl https://docs.across.to/docs/introduction/swap-api.mdx
+    curl https://docs.across.to/introduction/swap-api.mdx
     ```
   </Tab>
   <Tab value="fetch">
     ```ts title="agent.ts"
-    const page = await fetch("https://docs.across.to/docs/introduction/swap-api.mdx")
+    const page = await fetch("https://docs.across.to/introduction/swap-api.mdx")
       .then(r => r.text());
     console.log(page);
     ```
@@ -97,7 +97,7 @@ Every page on this site is available in machine-readable markdown format. AI age
     ```python title="agent.py"
     import requests
 
-    page = requests.get("https://docs.across.to/docs/introduction/swap-api.mdx").text
+    page = requests.get("https://docs.across.to/introduction/swap-api.mdx").text
     print(page)
     ```
   </Tab>

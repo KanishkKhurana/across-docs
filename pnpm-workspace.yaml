@@ -1,0 +1,2 @@
+patchedDependencies:
+  fumadocs-openapi: patches/fumadocs-openapi.patch
