@@ -13,7 +13,8 @@ export function baseOptions(): BaseLayoutProps {
             height={24}
             className="shrink-0"
           />
-          Across Developer Documentation
+          <span className="sm:hidden">Across Docs</span>
+          <span className="hidden sm:inline">Across Developer Documentation</span>
         </>
       ),
     },
