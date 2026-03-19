@@ -4,10 +4,8 @@ export const maxDuration = 60;
 
 const ALLOWED_ORIGINS = ['https://app.across.to', 'https://testnet.across.to'];
 
-// Headers to strip — never forward these to the upstream API
-const SKIP_HEADERS = new Set([
-  'authorization',
-]);
+// No headers stripped — forward everything including Authorization
+const SKIP_HEADERS = new Set<string>();
 
 async function handler(request: NextRequest): Promise<Response> {
   const url = request.nextUrl.searchParams.get('url');
