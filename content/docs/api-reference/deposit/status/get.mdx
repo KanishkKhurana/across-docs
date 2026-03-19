@@ -39,7 +39,13 @@ _openapi:
 import { Callout } from 'fumadocs-ui/components/callout';
 
 <Callout type="info">
-  **API key required for production.** [Request your API key and integrator ID](https://t.me/acrosstg) to get higher rate limits and priority support.
+  **API key required for production.** All requests must include a Bearer token in the `Authorization` header:
+
+  ```
+  Authorization: Bearer <your-api-key>
+  ```
+
+  [Request your API key and integrator ID](https://t.me/acrosstg) to get higher rate limits and priority support. Testnet endpoints do not require authentication.
 </Callout>
 
 <APIPage document={"./content/openapi/api-reference.yaml"} operations={[{"path":"/deposit/status","method":"get"}]} />

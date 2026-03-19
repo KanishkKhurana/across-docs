@@ -31,7 +31,7 @@ async function main() {
   });
 
   // 2. Inject API key callout into all generated endpoint files
-  const API_KEY_CALLOUT = `import { Callout } from 'fumadocs-ui/components/callout';\n\n<Callout type="info">\n  **API key required for production.** [Request your API key and integrator ID](https://t.me/acrosstg) to get higher rate limits and priority support.\n</Callout>\n\n`;
+  const API_KEY_CALLOUT = `import { Callout } from 'fumadocs-ui/components/callout';\n\n<Callout type="info">\n  **API key required for production.** All requests must include a Bearer token in the \`Authorization\` header:\n\n  \`\`\`\n  Authorization: Bearer <your-api-key>\n  \`\`\`\n\n  [Request your API key and integrator ID](https://t.me/acrosstg) to get higher rate limits and priority support. Testnet endpoints do not require authentication.\n</Callout>\n\n`;
 
   function getAllMdxFiles(dir) {
     const files = [];

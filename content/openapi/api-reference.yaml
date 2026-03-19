@@ -1,7 +1,22 @@
 openapi: 3.0.0
 info:
   title: Across Protocol API
-  description: API documentation for Across Protocol services.
+  description: >
+    API documentation for Across Protocol services.
+
+
+    ## Authentication
+
+
+    All production API requests require a **Bearer token** in the `Authorization` header:
+
+    ```
+
+    Authorization: Bearer <your-api-key>
+
+    ```
+
+    [Request your API key and integrator ID](https://t.me/acrosstg) to get higher rate limits and priority support. Testnet endpoints do not require authentication.
   version: 0.1.0
   x-gitbook-description-document:
     object: document
@@ -5746,11 +5761,6 @@ paths:
         <p>Returns a list of all supported sources that support crosschain swaps
         on Across Protocol.</p>
 components:
-  securitySchemes:
-    bearerAuth:
-      type: http
-      scheme: bearer
-      description: API key for authentication. Request your key at https://t.me/acrosstg.
   schemas:
     SwapApprovalRequest:
       type: object
