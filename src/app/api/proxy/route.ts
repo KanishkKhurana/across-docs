@@ -24,13 +24,16 @@ async function handler(request: NextRequest): Promise<Response> {
   const contentLength = request.headers.get('content-length');
   const hasBody = contentLength && parseInt(contentLength) > 0;
 
-  // Forward all browser headers except auth, cookies, and connection headers
+  // Forward all browser headers
   const headers = new Headers();
   request.headers.forEach((value, key) => {
     if (!SKIP_HEADERS.has(key.toLowerCase()) && !key.startsWith(':')) {
       headers.set(key, value);
     }
   });
+  // Override to look like a same-origin request
+  headers.set('sec-fetch-mode', 'same-origin');
+  headers.set('sec-fetch-site', 'same-origin');
 
   const res = await fetch(parsedUrl.href, {
     method: request.method,
