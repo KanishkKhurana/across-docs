@@ -4,6 +4,11 @@ export const maxDuration = 60;
 
 const ALLOWED_ORIGINS = ['https://app.across.to', 'https://testnet.across.to'];
 
+// Headers to strip — never forward these to the upstream API
+const SKIP_HEADERS = new Set([
+  'authorization',
+]);
+
 async function handler(request: NextRequest): Promise<Response> {
   const url = request.nextUrl.searchParams.get('url');
   if (!url) return Response.json('[Proxy] A `url` query parameter is required', { status: 400 });
@@ -21,12 +26,13 @@ async function handler(request: NextRequest): Promise<Response> {
   const contentLength = request.headers.get('content-length');
   const hasBody = contentLength && parseInt(contentLength) > 0;
 
-  // Only send Content-Type for requests with a body — no auth, no cookies
-  const headers: HeadersInit = { accept: 'application/json' };
-  if (hasBody) {
-    const ct = request.headers.get('content-type');
-    if (ct) headers['content-type'] = ct;
-  }
+  // Forward all browser headers except auth, cookies, and connection headers
+  const headers = new Headers();
+  request.headers.forEach((value, key) => {
+    if (!SKIP_HEADERS.has(key.toLowerCase()) && !key.startsWith(':')) {
+      headers.set(key, value);
+    }
+  });
 
   const res = await fetch(parsedUrl.href, {
     method: request.method,
