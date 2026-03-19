@@ -1,6 +1,6 @@
 import { generateFiles } from 'fumadocs-openapi';
 import { createOpenAPI } from 'fumadocs-openapi/server';
-import { existsSync, readFileSync, writeFileSync } from 'fs';
+import { existsSync, readFileSync, writeFileSync, readdirSync, statSync } from 'fs';
 import { join } from 'path';
 
 const LOCAL_SPEC = './content/openapi/api-reference.yaml';
@@ -30,7 +30,28 @@ async function main() {
     per: 'operation',
   });
 
-  // 2. Inject legacy callouts into generated MDX files
+  // 2. Inject API key callout into all generated endpoint files
+  const API_KEY_CALLOUT = `import { Callout } from 'fumadocs-ui/components/callout';\n\n<Callout type="info">\n  **API key required for production.** [Request your API key and integrator ID](https://t.me/acrosstg) to get higher rate limits and priority support.\n</Callout>\n\n`;
+
+  function getAllMdxFiles(dir) {
+    const files = [];
+    for (const entry of readdirSync(dir)) {
+      const full = join(dir, entry);
+      if (statSync(full).isDirectory()) files.push(...getAllMdxFiles(full));
+      else if (entry.endsWith('.mdx') && entry !== 'index.mdx') files.push(full);
+    }
+    return files;
+  }
+
+  for (const filePath of getAllMdxFiles(OUTPUT_DIR)) {
+    let content = readFileSync(filePath, 'utf-8');
+    if (!content.includes('<APIPage')) continue;
+    content = content.replace('<APIPage', API_KEY_CALLOUT + '<APIPage');
+    writeFileSync(filePath, content);
+    console.log(`  Injected API key callout: ${filePath.replace(OUTPUT_DIR + '/', '')}`);
+  }
+
+  // 3. Inject legacy callouts into generated MDX files (import already added by step 2)
   for (const [relPath, endpoint] of Object.entries(LEGACY_CALLOUTS)) {
     const filePath = join(OUTPUT_DIR, relPath);
     if (!existsSync(filePath)) {
@@ -38,11 +59,9 @@ async function main() {
       continue;
     }
     let content = readFileSync(filePath, 'utf-8');
-    // Insert callout between the comment and the APIPage component
-    content = content.replace(
-      '<APIPage',
-      `import { Callout } from 'fumadocs-ui/components/callout';\n\n<Callout type="warn">\n  **Legacy:** The \`${endpoint}\` API is no longer actively maintained. New integrations should use the [Swap API](/api-reference/swap/approval/get) instead.\n</Callout>\n\n<APIPage`,
-    );
+    // Insert legacy callout before the API key callout
+    const legacyCallout = `<Callout type="warn">\n  **Legacy:** The \`${endpoint}\` API is no longer actively maintained. New integrations should use the [Swap API](/api-reference/swap/approval/get) instead.\n</Callout>\n\n`;
+    content = content.replace('<Callout type="info">', legacyCallout + '<Callout type="info">');
     writeFileSync(filePath, content);
     console.log(`  Injected legacy callout: ${relPath}`);
   }
