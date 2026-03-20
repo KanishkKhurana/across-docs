@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Script from 'next/script';
 import { AISearch, AISearchPanel, AISearchTrigger } from '@/components/ai/search';
 import { MessageCircleIcon } from 'lucide-react';
 import { buttonVariants } from 'fumadocs-ui/components/ui/button';
@@ -27,6 +28,20 @@ const barlow = Barlow({
 export default function Layout({ children }: LayoutProps<'/'>) {
   return (
     <html lang="en" className={`dark ${inter.className} ${barlow.variable}`} suppressHydrationWarning>
+      <head>
+        <Script
+          src={`https://www.googletagmanager.com/gtag/js?id=${process.env.NEXT_PUBLIC_GA_ID}`}
+          strategy="afterInteractive"
+        />
+        <Script id="google-analytics" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', '${process.env.NEXT_PUBLIC_GA_ID}');
+          `}
+        </Script>
+      </head>
       <body className="flex flex-col min-h-screen">
         <AISearch>
           {/* Mobile-only: floating trigger + overlay panel (hidden on xl+) */}
