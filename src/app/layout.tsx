@@ -9,6 +9,9 @@ import './global.css';
 import { Inter, Barlow } from 'next/font/google';
 import { cn } from '@/lib/cn';
 
+const GA_ID = process.env.NEXT_PUBLIC_GA_ID;
+
+
 export const metadata: Metadata = {
   icons: {
     icon: '/across-logo.svg',
@@ -30,7 +33,7 @@ export default function Layout({ children }: LayoutProps<'/'>) {
     <html lang="en" className={`dark ${inter.className} ${barlow.variable}`} suppressHydrationWarning>
 
         <Script
-          src={`https://www.googletagmanager.com/gtag/js?id=${process.env.NEXT_PUBLIC_GA_ID}`}
+          src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}
           strategy="afterInteractive"
         />
         <Script id="google-analytics" strategy="afterInteractive">
@@ -38,7 +41,7 @@ export default function Layout({ children }: LayoutProps<'/'>) {
             window.dataLayer = window.dataLayer || [];
             function gtag(){dataLayer.push(arguments);}
             gtag('js', new Date());
-            gtag('config', '${process.env.NEXT_PUBLIC_GA_ID}');
+            gtag('config', '${GA_ID}');
           `}
         </Script>
 

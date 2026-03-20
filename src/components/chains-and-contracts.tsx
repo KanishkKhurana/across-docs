@@ -12,6 +12,10 @@ const COMING_SOON_CHAIN_IDS: string[] = [
   '4217', // Tempo
 ];
 
+// ── Testnets ────────────────────────────────────────────────────────
+// Identified by name keywords (Sepolia, Amoy, Devnet, etc.) in deployed-addresses.json.
+const TESTNET_KEYWORDS = ['sepolia', 'amoy', 'devnet', 'testnet', 'tatara'];
+
 interface ChainInfo {
   chainId: number;
   name: string;
@@ -126,6 +130,7 @@ function extractContracts(contracts: Record<string, ContractEntry>) {
 async function fetchData(): Promise<{
   live: ChainWithContracts[];
   comingSoon: ComingSoonChain[];
+  testnet: ComingSoonChain[];
 }> {
   const [chainsRes, deployedRes] = await Promise.all([
     fetch(CHAINS_API_URL, { next: { revalidate: 3600 } }),
@@ -140,6 +145,7 @@ async function fetchData(): Promise<{
   const deployed: DeployedAddresses = await deployedRes.json();
 
   const liveChainIds = new Set(chains.map((c) => String(c.chainId)));
+  const comingSoonSet = new Set(COMING_SOON_CHAIN_IDS);
 
   // Live chains: present in /swap/chains AND deployed-addresses
   const live: ChainWithContracts[] = [];
@@ -172,6 +178,20 @@ async function fetchData(): Promise<{
     });
   }
 
+  // Testnet chains: identified by name keywords in deployed-addresses.json
+  const testnet: ComingSoonChain[] = [];
+  for (const [chainIdStr, deployedChain] of Object.entries(deployed.chains)) {
+    if (liveChainIds.has(chainIdStr) || comingSoonSet.has(chainIdStr)) continue;
+    const nameLower = deployedChain.chain_name.toLowerCase();
+    if (!TESTNET_KEYWORDS.some((kw) => nameLower.includes(kw))) continue;
+
+    testnet.push({
+      chainId: Number(chainIdStr),
+      name: deployedChain.chain_name,
+      ...extractContracts(deployedChain.contracts),
+    });
+  }
+
   live.sort((a, b) => {
     if (a.chainId === 1) return -1;
     if (b.chainId === 1) return 1;
@@ -179,12 +199,13 @@ async function fetchData(): Promise<{
   });
 
   comingSoon.sort((a, b) => a.name.localeCompare(b.name));
+  testnet.sort((a, b) => a.name.localeCompare(b.name));
 
-  return { live, comingSoon };
+  return { live, comingSoon, testnet };
 }
 
 export async function ChainsAndContracts() {
-  const { live, comingSoon } = await fetchData();
+  const { live, comingSoon, testnet } = await fetchData();
 
   return (
     <div className="not-prose space-y-6">
@@ -464,6 +485,127 @@ export async function ChainsAndContracts() {
           </div>
         ))}
       </div>
+
+      {/* Testnet Chains */}
+      {testnet.length > 0 && (
+        <>
+          <h3 className="text-lg font-semibold text-[var(--color-fd-foreground)] pt-4">
+            Testnet Chains
+          </h3>
+          <p className="text-sm text-[var(--color-fd-muted-foreground)] -mt-4">
+            Testnet deployments for development and testing. Use the testnet API at{' '}
+            <code className="text-xs bg-[var(--color-fd-accent)] px-1.5 py-0.5 rounded">
+              https://testnet.across.to/api
+            </code>
+          </p>
+
+          <div className="rounded-xl border border-yellow-500/30 bg-yellow-500/5 p-4 text-sm text-[var(--color-fd-muted-foreground)]">
+            <p className="font-semibold text-yellow-500 mb-2">Testnet Limitations</p>
+            <p>
+              Testnet fills typically take around 1 minute, significantly slower than mainnet&apos;s sub-two second fills. This is because testnet lacks the economic incentives and relayer competition that drive mainnet&apos;s performance and reliability. We also recommend users to perform relatively smaller deposits (~$1) as relayer settlement does not occur on the testnet and unfilled deposits are not automatically refunded.
+            </p>
+            <p className="mt-2">
+              Therefore we only recommend you to use testnet API to ensure your implementation of the API is correct and then switch to mainnet API and experience Across in its true form.
+            </p>
+          </div>
+
+          {/* Testnet — Desktop Table */}
+          <div className="hidden md:block rounded-xl border border-[var(--color-fd-border)] overflow-x-auto">
+            <table className="w-full min-w-[600px] text-sm">
+              <thead>
+                <tr className="border-b border-[var(--color-fd-border)] bg-[var(--color-fd-card)]">
+                  <th className="text-left px-4 py-3 text-xs font-medium text-[var(--color-fd-muted-foreground)] uppercase tracking-wider">
+                    Chain
+                  </th>
+                  <th className="text-left px-4 py-3 text-xs font-medium text-[var(--color-fd-muted-foreground)] uppercase tracking-wider">
+                    Chain ID
+                  </th>
+                  <th className="text-left px-4 py-3 text-xs font-medium text-[var(--color-fd-muted-foreground)] uppercase tracking-wider">
+                    SpokePool
+                  </th>
+                  <th className="text-left px-4 py-3 text-xs font-medium text-[var(--color-fd-muted-foreground)] uppercase tracking-wider">
+                    SpokePoolPeriphery
+                  </th>
+                  <th className="text-left px-4 py-3 text-xs font-medium text-[var(--color-fd-muted-foreground)] uppercase tracking-wider">
+                    MulticallHandler
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {testnet.map((chain) => (
+                  <tr
+                    key={chain.chainId}
+                    className="border-b border-[var(--color-fd-border)] last:border-b-0 hover:bg-[var(--color-fd-accent)] transition-colors"
+                  >
+                    <td className="px-4 py-3">
+                      <span className="font-medium text-[var(--color-fd-foreground)]">
+                        {chain.name}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 font-mono text-xs text-[var(--color-fd-muted-foreground)]">
+                      {chain.chainId}
+                    </td>
+                    <td className="px-4 py-3">
+                      <AddressCell address={chain.spokePool} />
+                    </td>
+                    <td className="px-4 py-3">
+                      <AddressCell address={chain.spokePoolPeriphery} />
+                    </td>
+                    <td className="px-4 py-3">
+                      <AddressCell address={chain.multicallHandler} />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Testnet — Mobile Cards */}
+          <div className="md:hidden space-y-3">
+            {testnet.map((chain) => (
+              <div
+                key={chain.chainId}
+                className="rounded-xl border border-[var(--color-fd-border)] bg-[var(--color-fd-card)] p-4 space-y-3"
+              >
+                <div>
+                  <span className="font-medium text-[var(--color-fd-foreground)]">
+                    {chain.name}
+                  </span>
+                  <span className="ml-2 font-mono text-xs text-[var(--color-fd-muted-foreground)]">
+                    #{chain.chainId}
+                  </span>
+                </div>
+                <dl className="space-y-2 text-sm">
+                  <div className="flex justify-between items-center">
+                    <dt className="text-[var(--color-fd-muted-foreground)]">
+                      SpokePool
+                    </dt>
+                    <dd>
+                      <AddressCell address={chain.spokePool} />
+                    </dd>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <dt className="text-[var(--color-fd-muted-foreground)]">
+                      Periphery
+                    </dt>
+                    <dd>
+                      <AddressCell address={chain.spokePoolPeriphery} />
+                    </dd>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <dt className="text-[var(--color-fd-muted-foreground)]">
+                      MulticallHandler
+                    </dt>
+                    <dd>
+                      <AddressCell address={chain.multicallHandler} />
+                    </dd>
+                  </div>
+                </dl>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
 
     </div>
   );
