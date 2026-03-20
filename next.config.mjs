@@ -78,7 +78,7 @@ const config = {
       { source: '/resources/bug-bounty', destination: '/introduction', permanent: true },
       { source: '/resources/audits', destination: '/introduction/security', permanent: true },
       { source: '/resources/crosschain-live', destination: '/chains-and-contracts', permanent: true },
-      { source: '/v/v3-developer-docs/introduction/what-is-across', destination: '/introduction', permanent: true },
+      { source: '/v/v3-developer-docs/introduction/what-is-across', destination: '/', permanent: true },
     ];
   },
 };
