@@ -28,7 +28,7 @@ const barlow = Barlow({
 export default function Layout({ children }: LayoutProps<'/'>) {
   return (
     <html lang="en" className={`dark ${inter.className} ${barlow.variable}`} suppressHydrationWarning>
-      <head>
+
         <Script
           src={`https://www.googletagmanager.com/gtag/js?id=${process.env.NEXT_PUBLIC_GA_ID}`}
           strategy="afterInteractive"
@@ -41,7 +41,7 @@ export default function Layout({ children }: LayoutProps<'/'>) {
             gtag('config', '${process.env.NEXT_PUBLIC_GA_ID}');
           `}
         </Script>
-      </head>
+
       <body className="flex flex-col min-h-screen">
         <AISearch>
           {/* Mobile-only: floating trigger + overlay panel (hidden on xl+) */}
