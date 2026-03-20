@@ -6,7 +6,7 @@ settings:
 
 patchedDependencies:
   fumadocs-openapi:
-    hash: 8635964fdc98f7ab2a747bebdc45f9ef79e51460d536421083682d4f24d0a3e5
+    hash: 0453cec1ed3526ee4f853f5b1fe8a4fd09d37305ed78f65b7c1345c1132c91e3
     path: patches/fumadocs-openapi.patch
 
 importers:
@@ -39,7 +39,7 @@ importers:
         version: 14.2.9(@types/mdast@4.0.4)(@types/mdx@2.0.13)(@types/react@19.2.14)(fumadocs-core@16.7.2(@mdx-js/mdx@3.1.1)(@types/estree-jsx@1.0.5)(@types/hast@3.0.4)(@types/mdast@4.0.4)(@types/react@19.2.14)(flexsearch@0.8.212)(lucide-react@0.575.0(react@19.2.4))(next@16.1.6(@babel/core@7.29.0)(@opentelemetry/api@1.9.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(zod@4.3.6))(next@16.1.6(@babel/core@7.29.0)(@opentelemetry/api@1.9.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react@19.2.4)
       fumadocs-openapi:
         specifier: ^10.4.1
-        version: 10.4.1(patch_hash=8635964fdc98f7ab2a747bebdc45f9ef79e51460d536421083682d4f24d0a3e5)(8e56f37c7497e06120a2cedb05bae6eb)
+        version: 10.4.1(patch_hash=0453cec1ed3526ee4f853f5b1fe8a4fd09d37305ed78f65b7c1345c1132c91e3)(8e56f37c7497e06120a2cedb05bae6eb)
       fumadocs-ui:
         specifier: ^16.7.0
         version: 16.7.2(@types/mdx@2.0.13)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(fumadocs-core@16.7.2(@mdx-js/mdx@3.1.1)(@types/estree-jsx@1.0.5)(@types/hast@3.0.4)(@types/mdast@4.0.4)(@types/react@19.2.14)(flexsearch@0.8.212)(lucide-react@0.575.0(react@19.2.4))(next@16.1.6(@babel/core@7.29.0)(@opentelemetry/api@1.9.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(zod@4.3.6))(next@16.1.6(@babel/core@7.29.0)(@opentelemetry/api@1.9.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(shiki@4.0.1)(tailwindcss@4.2.1)
@@ -5627,7 +5627,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  fumadocs-openapi@10.4.1(patch_hash=8635964fdc98f7ab2a747bebdc45f9ef79e51460d536421083682d4f24d0a3e5)(8e56f37c7497e06120a2cedb05bae6eb):
+  fumadocs-openapi@10.4.1(patch_hash=0453cec1ed3526ee4f853f5b1fe8a4fd09d37305ed78f65b7c1345c1132c91e3)(8e56f37c7497e06120a2cedb05bae6eb):
     dependencies:
       '@fastify/deepmerge': 3.2.1
       '@fumari/json-schema-ts': 0.0.2
