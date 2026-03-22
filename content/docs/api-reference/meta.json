@@ -4,6 +4,8 @@
   "icon": "Code",
   "pages": [
     "index",
+    "---Early Access---",
+    "/swap/counterfactual/get.mdx",
     "---Swap API---",
     "/swap/approval/get.mdx",
     "/swap/approval/post.mdx",

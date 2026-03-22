@@ -1,16 +1,8 @@
 diff --git a/dist/playground/fetcher.js b/dist/playground/fetcher.js
-index b2d113d82ee9cc459f292551b260a2df44a7ee0b..e0a07756c52aa982b5c5ec5b9909ad6d9a165381 100644
+index b2d113d82ee9cc459f292551b260a2df44a7ee0b..a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0 100644
 --- a/dist/playground/fetcher.js
 +++ b/dist/playground/fetcher.js
-@@ -6,6 +6,7 @@ function createBrowserFetcher(adapters, requestTimeout) {
- 		const headers = new Headers();
- 		if (options.bodyMediaType && options.bodyMediaType !== "multipart/form-data") headers.append("Content-Type", options.bodyMediaType);
- 		for (const key in options.header) {
-+			if (key.toLowerCase() === "authorization") continue;
- 			const param = options.header[key];
- 			headers.append(key, param.value);
- 		}
-@@ -32,7 +33,6 @@ function createBrowserFetcher(adapters, requestTimeout) {
+@@ -32,7 +32,6 @@ function createBrowserFetcher(adapters, requestTimeout) {
  		}
  		return fetch(url, {
  			method: options.method,
