@@ -1,0 +1,87 @@
+---
+title: Direct Route Linking
+icon: Link
+description: Link users directly to a pre-filled bridge route on Across using URL query parameters.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+The Across frontend at `app.across.to` supports URL query parameters that pre-fill the bridge form with a specific route — origin chain, destination chain, input token, and output token. This lets you drop users directly into the exact transfer they need, no manual selection required.
+
+![Direct route linking](/direct-route-linking.png)
+
+<Callout type="info">
+  Direct route linking opens the **Across UI** with pre-filled fields. For programmatic bridging without a UI, use the [Swap API](/introduction/swap-api) instead.
+</Callout>
+
+## Base URL
+
+```
+https://app.across.to/bridge-and-swap
+```
+
+Append query parameters to pre-fill the bridge form.
+
+## Query Parameters
+
+| Parameter     | Type   | Description                          | Example   |
+|---------------|--------|--------------------------------------|-----------|
+| `from`        | number | Origin chain ID                      | `8453`    |
+| `to`          | number | Destination chain ID                 | `42161`   |
+| `inputToken`  | string | Input token symbol on origin chain   | `BAL`     |
+| `outputToken` | string | Output token symbol on destination   | `USDC`    |
+
+All parameters are optional — you can specify any combination. Omitted fields will show the default selection in the UI.
+
+## Examples
+
+### Bridge USDC from Base to Arbitrum
+
+```
+https://app.across.to/bridge-and-swap?from=8453&to=42161&inputToken=USDC&outputToken=USDC
+```
+
+### Swap BAL on Base to USDC on Arbitrum
+
+```
+https://app.across.to/bridge-and-swap?from=8453&to=42161&inputToken=BAL&outputToken=USDC
+```
+
+### Pre-fill only the origin chain
+
+```
+https://app.across.to/bridge-and-swap?from=8453
+```
+
+The user lands on the bridge page with Base already selected as the origin. They choose everything else.
+
+### Bridge ETH from Ethereum to Optimism
+
+```
+https://app.across.to/bridge-and-swap?from=1&to=10&inputToken=ETH&outputToken=ETH
+```
+
+## Common Chain IDs
+
+| Chain      | Chain ID |
+|------------|----------|
+| Ethereum   | `1`      |
+| Optimism   | `10`     |
+| Arbitrum   | `42161`  |
+| Base       | `8453`   |
+| Polygon    | `137`    |
+| ZKsync Era | `324`    |
+| Linea      | `59144`  |
+| Scroll     | `534352` |
+| Blast      | `81457`  |
+| MegaETH    | `4326`   |
+
+For the full list of supported chains and their IDs, see [Chains & Contracts](/chains-and-contracts).
+
+## Use Cases
+
+- **Partner integrations** — Link from your dApp directly to Across with the route pre-filled for your users
+- **Documentation and tutorials** — Provide clickable example links so readers can try a route instantly
+- **Marketing campaigns** — Share a specific route link in tweets, blog posts, or newsletters
+- **Wallet integrations** — Deep-link from wallet UIs into the Across bridge with the right tokens selected
+- **Support flows** — Send users a direct link to the exact route they need help with
