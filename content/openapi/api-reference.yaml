@@ -5857,7 +5857,7 @@ paths:
             Address that will receive the output token on the destination chain.
           schema:
             type: string
-          example: '0xYourRecipientAddress'
+          example: '0x3cA3451C40ECFb5Ecd05AEf33AD60BA8F03c238B'
         - name: refundAddress
           in: query
           required: true
@@ -5865,7 +5865,7 @@ paths:
             Address to receive a refund on the origin chain if the deposit expires.
           schema:
             type: string
-          example: '0xYourRefundAddress'
+          example: '0x3cA3451C40ECFb5Ecd05AEf33AD60BA8F03c238B'
       responses:
         '200':
           description: Counterfactual deposit address and swap details
