@@ -2,5 +2,5 @@
   "title": "Guides",
   "root": true,
   "icon": "Compass",
-  "pages": ["index", "concepts", "dev-guides", "migration"]
+  "pages": ["index", "concepts", "dev-guides", "user-guides", "migration"]
 }

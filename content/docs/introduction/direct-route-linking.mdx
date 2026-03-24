@@ -1,0 +1,34 @@
+---
+title: Direct Route Linking
+icon: Link
+description: Link users directly to a pre-filled bridge route on the Across UI.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+Across's frontend supports **direct route linking** — construct a URL with query parameters to drop users directly into a pre-filled bridge route. No API calls, no wallet connection required upfront.
+
+
+## How It Works
+
+Append query parameters to the base URL to pre-select the origin chain, destination chain, and tokens:
+
+```
+https://app.across.to/bridge-and-swap?from=8453&to=42161&inputToken=BAL&outputToken=USDC
+```
+![Direct route linking](/direct-route-linking.png)
+
+This opens the Across bridge with **Base → Arbitrum** selected and **BAL → USDC** as the token pair.
+
+| Parameter     | Description                        | Example  |
+|---------------|------------------------------------|----------|
+| `from`        | Origin chain ID                    | `8453`   |
+| `to`          | Destination chain ID               | `42161`  |
+| `inputToken`  | Input token symbol                 | `BAL`    |
+| `outputToken` | Output token symbol                | `USDC`   |
+
+All parameters are optional — use any combination.
+
+<Callout type="info">
+  For the full parameter reference, examples, chain ID table, and use cases, see the [complete guide](/guides/user-guides/direct-route-linking).
+</Callout>
