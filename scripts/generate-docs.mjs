@@ -10,6 +10,7 @@ const OUTPUT_DIR = './content/docs/api-reference';
 const LEGACY_CALLOUTS = {
   'suggested-fees/get.mdx': '/suggested-fees',
   'available-routes/get.mdx': '/available-routes',
+  'limits/get.mdx': '/limits',
 };
 
 async function main() {

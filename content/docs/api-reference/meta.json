@@ -13,10 +13,9 @@
     "---Tracking Deposits---",
     "/deposit/status/get.mdx",
     "/deposits/get.mdx",
-    "---Bridgeable Routes and Limits---",
-    "/available-routes/get.mdx",
-    "/limits/get.mdx",
     "---Suggested Fees API (Legacy)---",
-    "/suggested-fees/get.mdx"
+    "/suggested-fees/get.mdx",
+    "/available-routes/get.mdx",
+    "/limits/get.mdx"
   ]
 }
