@@ -5917,14 +5917,262 @@ paths:
                           Native token value to send with the transaction (in wei).
                           Typically "0" unless wrapping native ETH.
               example:
-                depositAddress: '0x1234...abcd'
-                inputTokenAddress: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'
-                inputTokenSymbol: USDC
-                inputTokenDecimals: 6
-                outputTokenAddress: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'
-                outputTokenSymbol: USDC
-                outputTokenDecimals: 6
-                swapTx: null
+                crossSwapType: bridgeableToBridgeable
+                amountType: exactInput
+                checks:
+                  allowance:
+                    token: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'
+                    spender: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'
+                    actual: '0'
+                    expected: '1000000'
+                  balance:
+                    token: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'
+                    actual: '0'
+                    expected: '1000000'
+                steps:
+                  bridge:
+                    inputAmount: '1000000'
+                    outputAmount: '996965'
+                    tokenIn:
+                      decimals: 6
+                      symbol: USDC
+                      address: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'
+                      name: USD Coin
+                      chainId: 1
+                    tokenOut:
+                      decimals: 6
+                      symbol: USDC
+                      address: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'
+                      name: USD Coin
+                      chainId: 8453
+                    fees:
+                      amount: '3035'
+                      pct: '3035000000000000'
+                      token:
+                        decimals: 6
+                        symbol: USDC
+                        address: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'
+                        name: USD Coin
+                        chainId: 1
+                      details:
+                        type: across
+                        relayerCapital:
+                          amount: '100'
+                          pct: '100000000000000'
+                          token:
+                            decimals: 6
+                            symbol: USDC
+                            address: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'
+                            name: USD Coin
+                            chainId: 1
+                        destinationGas:
+                          amount: '2935'
+                          pct: '2935000000000000'
+                          token:
+                            decimals: 6
+                            symbol: USDC
+                            address: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'
+                            name: USD Coin
+                            chainId: 1
+                        lp:
+                          amount: '0'
+                          pct: '0'
+                          token:
+                            decimals: 6
+                            symbol: USDC
+                            address: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'
+                            name: USD Coin
+                            chainId: 1
+                    provider: across
+                inputToken:
+                  decimals: 6
+                  symbol: USDC
+                  address: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'
+                  name: USD Coin
+                  chainId: 1
+                outputToken:
+                  decimals: 6
+                  symbol: USDC
+                  address: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'
+                  name: USD Coin
+                  chainId: 8453
+                refundToken:
+                  decimals: 6
+                  symbol: USDC
+                  address: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'
+                  name: USD Coin
+                  chainId: 1
+                fees:
+                  total:
+                    amount: '3000'
+                    amountUsd: '0.003'
+                    token:
+                      decimals: 6
+                      symbol: USDC
+                      address: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'
+                      name: USD Coin
+                      chainId: 1
+                    pct: '3000294028814824'
+                    details:
+                      type: total-breakdown
+                      swapImpact:
+                        amount: '-34'
+                        amountUsd: '-0.00003470257'
+                        token:
+                          decimals: 6
+                          symbol: USDC
+                          address: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'
+                          name: USD Coin
+                          chainId: 1
+                        pct: '-34705971185176'
+                      app:
+                        amount: '0'
+                        amountUsd: '0.0'
+                        token:
+                          decimals: 6
+                          symbol: USDC
+                          address: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'
+                          name: USD Coin
+                          chainId: 8453
+                        pct: '0'
+                      bridge:
+                        amount: '3035'
+                        amountUsd: '0.00303470257'
+                        token:
+                          decimals: 6
+                          symbol: USDC
+                          address: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'
+                          name: USD Coin
+                          chainId: 1
+                        pct: '3035000000000000'
+                        details:
+                          type: across
+                          lp:
+                            amount: '0'
+                            amountUsd: '0.0'
+                            token:
+                              decimals: 6
+                              symbol: USDC
+                              address: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'
+                              name: USD Coin
+                              chainId: 1
+                            pct: '0'
+                          relayerCapital:
+                            amount: '100'
+                            amountUsd: '0.0000999902'
+                            token:
+                              decimals: 6
+                              symbol: USDC
+                              address: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'
+                              name: USD Coin
+                              chainId: 1
+                            pct: '100000000000000'
+                          destinationGas:
+                            amount: '1361790208070'
+                            amountUsd: '0.00293471237'
+                            token:
+                              chainId: 8453
+                              address: '0x0000000000000000000000000000000000000000'
+                              decimals: 18
+                              symbol: ETH
+                            pct: '2935000000000000'
+                  totalMax:
+                    amount: '3000'
+                    amountUsd: '0.003'
+                    token:
+                      decimals: 6
+                      symbol: USDC
+                      address: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'
+                      name: USD Coin
+                      chainId: 1
+                    pct: '3000294028814824'
+                    details:
+                      type: max-total-breakdown
+                      maxSwapImpact:
+                        amount: '-34'
+                        amountUsd: '-0.00003470257'
+                        token:
+                          decimals: 6
+                          symbol: USDC
+                          address: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'
+                          name: USD Coin
+                          chainId: 1
+                        pct: '-34705971185176'
+                      app:
+                        amount: '0'
+                        amountUsd: '0.0'
+                        token:
+                          decimals: 6
+                          symbol: USDC
+                          address: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'
+                          name: USD Coin
+                          chainId: 8453
+                        pct: '0'
+                      bridge:
+                        amount: '3035'
+                        amountUsd: '0.00303470257'
+                        token:
+                          decimals: 6
+                          symbol: USDC
+                          address: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'
+                          name: USD Coin
+                          chainId: 1
+                        pct: '3035000000000000'
+                        details:
+                          type: across
+                          lp:
+                            amount: '0'
+                            amountUsd: '0.0'
+                            token:
+                              decimals: 6
+                              symbol: USDC
+                              address: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'
+                              name: USD Coin
+                              chainId: 1
+                            pct: '0'
+                          relayerCapital:
+                            amount: '100'
+                            amountUsd: '0.0000999902'
+                            token:
+                              decimals: 6
+                              symbol: USDC
+                              address: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'
+                              name: USD Coin
+                              chainId: 1
+                            pct: '100000000000000'
+                          destinationGas:
+                            amount: '1361790208070'
+                            amountUsd: '0.00293471237'
+                            token:
+                              chainId: 8453
+                              address: '0x0000000000000000000000000000000000000000'
+                              decimals: 18
+                              symbol: ETH
+                            pct: '2935000000000000'
+                  originGas:
+                    amount: '0'
+                    amountUsd: '0.0'
+                    token:
+                      chainId: 1
+                      address: '0x0000000000000000000000000000000000000000'
+                      decimals: 18
+                      symbol: ETH
+                inputAmount: '1000000'
+                maxInputAmount: '1000000'
+                expectedOutputAmount: '996965'
+                minOutputAmount: '996965'
+                expectedFillTime: 4
+                swapTx:
+                  ecosystem: evm
+                  simulationSuccess: true
+                  chainId: 1
+                  to: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'
+                  data: '0xa9059cbb000000000000000000000000088274f94ef47386055fe6315e0952c5c098f72a00000000000000000000000000000000000000000000000000000000000f4240'
+                  value: '0'
+                  gas: '0'
+                quoteExpiryTimestamp: 1774408103
+                depositAddress: '0x088274f94ef47386055fE6315E0952C5c098F72A'
+                id: 'xwv9h-1774404669182-c290c198f61c'
         '400':
           description: Invalid input
           content:
@@ -5936,6 +6184,18 @@ paths:
                 code: INVALID_PARAM
                 status: 400
                 message: Invalid parameter
+        '403':
+          description: Invalid or missing API key
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AcrossApiError'
+              example:
+                type: AcrossApiError
+                code: FORBIDDEN_API_KEY
+                status: 403
+                message: Invalid or missing API key
+                id: 'hxlzg-1774404706014-af527ab9002e'
         '500':
           description: Internal server error
           content:

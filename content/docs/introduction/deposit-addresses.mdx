@@ -1,0 +1,187 @@
+---
+title: Deposit Addresses
+icon: Inbox
+description: Generate a counterfactual deposit address that users can send funds to in order to initiate a crosschain transfer.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+<Callout type="idea">
+  **Early Access.** <br/>
+  Deposit addresses are available for approved integrators. [Reach out on Telegram](https://t.me/acrosstg) to get access.
+</Callout>
+
+## Overview
+
+Deposit addresses let users initiate crosschain transfers by sending tokens to a generated address. Call `/swap/counterfactual` with your route parameters and receive a unique `depositAddress`. The user sends the input token to that address on the origin chain. Across detects the transfer, sweeps the funds, and completes the crosschain transfer to the recipient on the destination chain.
+
+This is ideal for:
+- **Onramps**: user withdraws from a CEX or fiat onramp directly to a deposit address
+- **Bots and automation**: no wallet signing flow needed
+- **Simplified UX**: reduce the integration to a single token transfer
+
+## How It Works
+
+<Callout type="info">
+  **API key required.** <br/> This endpoint requires a valid API key in the `Authorization` header. Requests without one will return a `403` error. [Request your API key and integrator ID](/introduction/api-keys)
+</Callout>
+
+<Steps>
+  <Step>
+    ### Generate a deposit address
+
+    Call `/swap/counterfactual` with the route parameters, recipient, and refund address.
+
+    ```ts title="generate-deposit-address.ts"
+    const params = new URLSearchParams({
+      useDepositAddress: "true",
+      originChainId: "1",
+      destinationChainId: "8453",
+      inputToken: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",  // USDC on Ethereum
+      outputToken: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", // USDC on Base
+      amount: "1000000",          // 1 USDC (6 decimals)
+      recipient: "0xRecipientAddress",
+      refundAddress: "0xUserOriginAddress",
+    });
+
+    const response = await fetch(
+      `https://app.across.to/api/swap/counterfactual?${params}`,
+      {
+        headers: {
+          Authorization: "Bearer YOUR_API_KEY",
+        },
+      }
+    );
+    const data = await response.json();
+
+    console.log("Deposit address:", data.depositAddress);
+    console.log("Send", data.inputToken.symbol, "to this address on origin chain");
+    ```
+  </Step>
+  <Step>
+    ### Send tokens to the deposit address
+
+    Transfer the input token to the `depositAddress` on the origin chain. This is a standard ERC-20 transfer, no special calldata needed.
+
+    ```ts title="send-tokens.ts"
+    import { erc20Abi } from "viem";
+
+    const hash = await walletClient.writeContract({
+      address: data.inputToken.address,
+      abi: erc20Abi,
+      functionName: "transfer",
+      args: [data.depositAddress, BigInt(data.inputAmount)],
+    });
+
+    console.log("Transfer tx:", hash);
+    ```
+  </Step>
+  <Step>
+    ### Across handles the rest
+
+    After detecting the token transfer, Across:
+    1. Fetches a fresh quote for the route
+    2. Deploys the deposit address contract and sweeps funds into the SpokePool
+    3. Completes the crosschain swap
+
+    The recipient receives the output token on the destination chain.
+  </Step>
+</Steps>
+
+## API Parameters
+
+### Request
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `useDepositAddress` | `boolean` | Yes | Must be `true` |
+| `inputToken` | `string` | Yes | Token address on origin chain |
+| `outputToken` | `string` | Yes | Token address on destination chain |
+| `originChainId` | `number` | Yes | Origin chain ID |
+| `destinationChainId` | `number` | Yes | Destination chain ID |
+| `amount` | `string` | Yes | Amount in smallest unit (wei) |
+| `recipient` | `string` | Yes | Address receiving tokens on destination |
+| `refundAddress` | `string` | Yes | Address for refunds on origin chain |
+
+### Response
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `depositAddress` | `string` | Address to send tokens to on origin chain |
+| `id` | `string` | Unique quote identifier |
+| `crossSwapType` | `string` | Type of crosschain swap (e.g. `"bridgeableToBridgeable"`) |
+| `amountType` | `string` | Amount type used (e.g. `"exactInput"`) |
+| `inputToken` | `object` | Input token details: `address`, `symbol`, `name`, `decimals`, `chainId` |
+| `outputToken` | `object` | Output token details: `address`, `symbol`, `name`, `decimals`, `chainId` |
+| `refundToken` | `object` | Token used for refunds: `address`, `symbol`, `name`, `decimals`, `chainId` |
+| `inputAmount` | `string` | Amount of input token (smallest unit) |
+| `maxInputAmount` | `string` | Maximum input amount |
+| `expectedOutputAmount` | `string` | Expected output amount after fees |
+| `minOutputAmount` | `string` | Minimum guaranteed output amount |
+| `expectedFillTime` | `number` | Expected fill time in seconds |
+| `quoteExpiryTimestamp` | `number` | Unix timestamp when this quote expires |
+| `checks` | `object` | Allowance and balance checks: `allowance` (token, spender, actual, expected) and `balance` (token, actual, expected) |
+| `steps` | `object` | Breakdown of the bridge step including `inputAmount`, `outputAmount`, `tokenIn`, `tokenOut`, `fees`, and `provider` |
+| `fees` | `object` | Fee breakdown: `total` (amount, amountUsd, pct, details), `totalMax`, and `originGas` |
+| `swapTx` | `object` | Transaction to execute: `ecosystem`, `simulationSuccess`, `chainId`, `to`, `data`, `value`, `gas` |
+
+<Callout type="info">
+  The `fees.total.details` object contains a full breakdown including `bridge` fees (relayer capital, destination gas, LP fee) and `swapImpact`. See the [API playground](/api-reference/swap/counterfactual/get) for the complete nested structure.
+</Callout>
+
+## Address Lifecycle
+
+Each call to `/swap/counterfactual` returns a **new, unique address**. Deposit addresses are not intended to be reused.
+
+| Behavior | Detail |
+|----------|--------|
+| **Uniqueness** | New address generated per quote |
+| **TTL** | 24 hours: address expires if no token transfer is received |
+| **After first transfer** | Across processes the transfer and stops monitoring the address |
+| **Reuse within TTL** | If additional transfers are sent within the TTL, they will be processed, but this is not the intended flow |
+
+<Callout type="info">
+  Do not cache or persist deposit addresses. Generate a new one for each transfer.
+</Callout>
+
+## Tracking Status
+
+Track deposit status using the `depositAddress` and `index` parameters on `/deposit/status`:
+
+```
+GET /deposit/status?depositAddress=0x1234...abcd&index=0
+```
+
+The `index` is 0-based. Use `0` for the first (and typically only) deposit to that address.
+
+The response uses the same status values as standard deposits: `pending` > `filled` / `expired` > `refunded`.
+
+See [Tracking Deposits](/introduction/tracking-deposits) for the full polling guide.
+
+## Fees
+
+There is currently **no deployment fee** charged for generating deposit addresses. If a fee is introduced in the future, it will be:
+- A fixed amount (not a percentage)
+- Deducted from the user's input amount
+- Included in the quote response
+
+Bridge fees (relayer capital, destination gas, LP) are included in the response under `fees.total` and `steps.bridge.fees`.
+
+## Refund Behavior
+
+<Callout type="warn">
+  Always set `refundAddress` to an address the user controls on the **origin chain**. This address receives refunds if the transfer cannot be completed.
+</Callout>
+
+| Scenario | What happens |
+|----------|-------------|
+| **Bot submits intent but relayer can't fill** | Refund sent automatically to `refundAddress` on origin chain |
+| **Bot cannot submit deposit** (e.g. infrastructure issue) | Across retries with a new quote. If retries fail, contract is deployed and funds can be withdrawn by `refundAddress` or admin |
+| **Wrong token sent** to deposit address | Manual withdrawal required by `refundAddress` or admin |
+
+For general refund timing and behavior, see [Refunds](/introduction/refunds).
+
+<Callout type="success">
+  Try it in the API playground: [/swap/counterfactual](/api-reference/swap/counterfactual/get)
+</Callout>
