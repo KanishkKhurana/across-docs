@@ -38,7 +38,7 @@ info:
     key: 84ZvEwRHHdAX
   x-gitbook-description-html: <p>API documentation for Across Protocol services.</p>
 servers:
-  - url: https://v2.across.to/api
+  - url: https://app.across.to/api
 security:
   - bearerAuth: []
 paths:
