@@ -13,6 +13,11 @@ const GA_ID = process.env.NEXT_PUBLIC_GA_ID;
 
 
 export const metadata: Metadata = {
+  title: {
+    default: 'Across Developer Documentation',
+    template: '%s | Across Docs',
+  },
+  description: 'The fastest crosschain infrastructure for builders.',
   icons: {
     icon: '/across-logo.svg',
   },
