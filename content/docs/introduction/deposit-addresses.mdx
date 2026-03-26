@@ -41,11 +41,11 @@ This is ideal for:
     ```ts title="generate-deposit-address.ts"
     const params = new URLSearchParams({
       useDepositAddress: "true",
-      originChainId: "1",
-      destinationChainId: "8453",
-      inputToken: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",  // USDC on Ethereum
-      outputToken: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", // USDC on Base
-      amount: "1000000",          // 1 USDC (6 decimals)
+      originChainId: "42161",
+      destinationChainId: "1337",
+      inputToken: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831", // USDC on Arbitrum
+      outputToken: "0x2000000000000000000000000000000000000168", // USDH on HyperCore
+      amount: "1000000",
       recipient: "0xRecipientAddress",
       refundAddress: "0xUserOriginAddress",
     });
