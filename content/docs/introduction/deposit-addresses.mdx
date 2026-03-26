@@ -12,6 +12,11 @@ import { Step, Steps } from 'fumadocs-ui/components/steps';
   Deposit addresses are available for approved integrators. [Reach out on Telegram](https://t.me/acrosstg) to get access.
 </Callout>
 
+<Callout type="warn">
+  **Supported routes.** <br/>
+  Deposit addresses currently only support USDC (Arbitrum, Ethereum, Base) to USDH (HyperEVM, HyperCore). More routes will be added soon.
+</Callout>
+
 ## Overview
 
 Deposit addresses let users initiate crosschain transfers by sending tokens to a generated address. Call `/swap/counterfactual` with your route parameters and receive a unique `depositAddress`. The user sends the input token to that address on the origin chain. Across detects the transfer, sweeps the funds, and completes the crosschain transfer to the recipient on the destination chain.
