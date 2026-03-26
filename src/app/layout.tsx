@@ -21,6 +21,13 @@ export const metadata: Metadata = {
   icons: {
     icon: '/across-logo.svg',
   },
+  openGraph: {
+    type: 'website',
+    siteName: 'Across Docs',
+  },
+  twitter: {
+    card: 'summary_large_image',
+  },
 };
 
 const inter = Inter({
