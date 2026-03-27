@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { ChevronRight } from 'lucide-react';
 
 type Endpoint = {
   method: 'GET' | 'POST';
@@ -134,31 +135,36 @@ function MethodBadge({ method }: { method: string }) {
 
 export function APICards() {
   return (
-    <div className="block xl:hidden mt-8 space-y-6">
+    <div className="block xl:hidden mt-8 space-y-4">
       {sections.map((section) => (
-        <div key={section.heading}>
-          <h3 className="text-xs font-semibold uppercase tracking-wider text-fd-muted-foreground mb-3">
-            {section.heading}
-          </h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {section.endpoints.map((ep) => (
-              <Link
-                key={ep.href}
-                href={ep.href}
-                className="group flex flex-col gap-2.5 rounded-xl border border-fd-border bg-fd-card p-4 no-underline transition-colors hover:border-fd-primary/40 hover:bg-fd-primary/[0.04]"
-              >
-                <div className="flex items-center gap-2.5">
-                  <MethodBadge method={ep.method} />
-                  <code className="text-[13px] font-medium text-fd-foreground/80">
-                    {ep.path}
-                  </code>
-                </div>
-                <p className="text-sm text-fd-muted-foreground leading-snug">
+        <div
+          key={section.heading}
+          className="rounded-xl border border-fd-border bg-fd-card overflow-hidden"
+        >
+          <div className="px-4 py-2.5 border-b border-fd-border bg-fd-muted/50">
+            <span className="text-xs font-semibold uppercase tracking-wider text-fd-primary">
+              {section.heading}
+            </span>
+          </div>
+
+          {section.endpoints.map((ep) => (
+            <Link
+              key={ep.href}
+              href={ep.href}
+              className="group flex items-center gap-3 px-4 py-3 no-underline border-b border-fd-border last:border-b-0 transition-colors hover:bg-fd-primary/[0.04]"
+            >
+              <MethodBadge method={ep.method} />
+              <div className="flex-1 min-w-0">
+                <code className="text-[13px] font-medium text-fd-foreground/80 group-hover:text-fd-foreground transition-colors">
+                  {ep.path}
+                </code>
+                <p className="text-sm text-fd-muted-foreground leading-snug mt-0.5 group-hover:text-fd-foreground/70 transition-colors">
                   {ep.title}
                 </p>
-              </Link>
-            ))}
-          </div>
+              </div>
+              <ChevronRight className="size-4 shrink-0 text-fd-muted-foreground group-hover:text-fd-foreground/70 transition-all group-hover:translate-x-0.5" />
+            </Link>
+          ))}
         </div>
       ))}
     </div>
