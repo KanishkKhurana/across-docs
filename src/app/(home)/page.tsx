@@ -68,7 +68,7 @@ export default function HomePage() {
       {/* Stats */}
       <div className="flex flex-wrap justify-center gap-10 mb-10">
         <div className="text-center">
-          <div className="text-2xl font-bold text-fd-primary">$32B+</div>
+          <div className="text-2xl font-bold text-fd-primary">$35B+</div>
           <div className="text-sm text-fd-muted-foreground mt-1">Bridged</div>
         </div>
         <div className="text-center">
