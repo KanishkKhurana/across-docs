@@ -7,6 +7,7 @@ import { ToolCards } from '@/components/tools/tool-cards';
 import { TransactionBuilder } from '@/components/tools/transaction-builder';
 import { APIPage } from '@/components/api-page';
 import { ChainsAndContracts } from '@/components/chains-and-contracts';
+import { APICards } from '@/components/api-cards';
 
 export function getMDXComponents(components?: MDXComponents): MDXComponents {
   return {
@@ -18,6 +19,7 @@ export function getMDXComponents(components?: MDXComponents): MDXComponents {
     TransactionBuilder,
     APIPage,
     ChainsAndContracts,
+    APICards,
     ...components,
   };
 }
