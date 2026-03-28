@@ -19,8 +19,12 @@ Open http://localhost:3000 to see the docs.
 | `content/openapi/api-reference.yaml` | OpenAPI spec — **source of truth** for all API reference docs |
 | `src/app/(home)` | Landing page |
 | `src/app/(docs)` | Documentation layout and pages |
-| `src/app/api/chat/route.ts` | AI chat assistant route |
-| `src/app/api/proxy/route.ts` | API playground proxy (avoids CORS) |
+| `src/app/api/chat/route.ts` | AI chat assistant route (OpenAI / gpt-4o-mini) |
+| `src/app/api/search/route.ts` | Search endpoint (flexsearch) |
+| `src/app/llms.txt/` | llms.txt endpoint for AI consumption |
+| `src/app/llms-full.txt/` | Extended llms.txt with full doc content |
+| `src/app/og/` | Dynamic OG image generation |
+| `src/components/` | React components — `tools/`, `ai/`, `ui/` subdirectories |
 | `src/lib/source.ts` | Content source adapter |
 | `src/lib/layout.shared.tsx` | Shared layout options |
 | `source.config.ts` | Fumadocs MDX config and frontmatter schema |
@@ -151,6 +155,6 @@ Multiple `calls` entries can be added to maximize field coverage for endpoints w
 
 ## Learn More
 
-- [Fumadocs](https://fumadocs.dev) - documentation framework
-- [Next.js Documentation](https://nextjs.org/docs) - Next.js features and API
-- [Across Protocol](https://docs.across.to) - Across Protocol documentation
+- [Fumadocs](https://fumadocs.dev) — documentation framework
+- [Next.js Documentation](https://nextjs.org/docs) — Next.js features and API
+- [Across Protocol](https://across.to) — Across Protocol
