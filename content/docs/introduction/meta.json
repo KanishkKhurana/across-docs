@@ -24,6 +24,8 @@
     "security",
     "---Relayers---",
     "relayers/running-relayer.mdx",
-    "relayers/relayer-nomination.mdx"
+    "relayers/relayer-nomination.mdx",
+    "---Resources---",
+    "bug-bounty"
   ]
 }
