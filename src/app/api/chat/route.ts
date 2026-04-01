@@ -24,14 +24,19 @@ async function createSearchServer() {
 
   const docs = await chunkedAll(
     source.getPages().map(async (page) => {
-      if (!('getText' in page.data)) return null;
+      try {
+        if (!('getText' in page.data)) return null;
 
-      return {
-        title: page.data.title,
-        description: page.data.description,
-        url: page.url,
-        content: await page.data.getText('raw'),
-      } as CustomDocument;
+        return {
+          title: page.data.title,
+          description: page.data.description,
+          url: page.url,
+          content: await page.data.getText('raw'),
+        } as CustomDocument;
+      } catch {
+        // Some pages (e.g. auto-generated API docs) may not have raw MDX on disk
+        return null;
+      }
     }),
   );
 
