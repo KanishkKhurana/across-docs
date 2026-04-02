@@ -9,6 +9,7 @@
     "features",
     "api-keys",
     "stablecoins",
+    "faq",
     "---Featured---",
     "direct-route-linking",
     "deposit-addresses",
@@ -26,7 +27,6 @@
     "relayers/running-relayer.mdx",
     "relayers/relayer-nomination.mdx",
     "---Resources---",
-    "bug-bounty",
-    "faq"
+    "bug-bounty"
   ]
 }
