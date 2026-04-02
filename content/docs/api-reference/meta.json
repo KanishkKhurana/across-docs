@@ -13,6 +13,7 @@
     "/swap/tokens/get.mdx",
     "/swap/sources/get.mdx",
     "---Tracking Deposits---",
+    "/deposit/get.mdx",
     "/deposit/status/get.mdx",
     "/deposits/get.mdx",
     "---Suggested Fees API (Legacy)---",

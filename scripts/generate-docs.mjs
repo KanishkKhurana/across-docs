@@ -47,17 +47,35 @@ async function main() {
     console.log(`  Injected legacy callout: ${relPath}`);
   }
 
-  // 3. Restore root + icon in meta.json (generateFiles overwrites it)
+  // 3. Restore meta.json with desired page order (generateFiles overwrites it)
   const metaPath = join(OUTPUT_DIR, 'meta.json');
-  const meta = JSON.parse(readFileSync(metaPath, 'utf-8'));
-  meta.root = true;
-  meta.icon = 'Code';
-  if (meta.pages && !meta.pages.includes('index')) {
-    meta.pages.unshift('index');
-  }
-  writeFileSync(metaPath, JSON.stringify(meta, null, 2) + '\n');
+  const desiredMeta = {
+    title: 'API Reference',
+    root: true,
+    icon: 'Code',
+    pages: [
+      'index',
+      '---Early Access---',
+      '/swap/counterfactual/get.mdx',
+      '---Swap API---',
+      '/swap/approval/get.mdx',
+      '/swap/approval/post.mdx',
+      '/swap/chains/get.mdx',
+      '/swap/tokens/get.mdx',
+      '/swap/sources/get.mdx',
+      '---Tracking Deposits---',
+      '/deposit/get.mdx',
+      '/deposit/status/get.mdx',
+      '/deposits/get.mdx',
+      '---Suggested Fees API (Legacy)---',
+      '/suggested-fees/get.mdx',
+      '/available-routes/get.mdx',
+      '/limits/get.mdx',
+    ],
+  };
+  writeFileSync(metaPath, JSON.stringify(desiredMeta, null, 2) + '\n');
   console.log('API docs generated successfully');
-  console.log('meta.json patched with root: true, icon: Code');
+  console.log('meta.json patched with desired page order');
 }
 
 main().catch((err) => {

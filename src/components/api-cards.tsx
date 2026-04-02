@@ -62,6 +62,12 @@ const sections: { heading: string; endpoints: Endpoint[] }[] = [
     endpoints: [
       {
         method: 'GET',
+        path: '/deposit',
+        title: 'Get all details for a single deposit',
+        href: '/api-reference/deposit/get',
+      },
+      {
+        method: 'GET',
         path: '/deposit/status',
         title: 'Track the lifecycle of a deposit',
         href: '/api-reference/deposit/status/get',

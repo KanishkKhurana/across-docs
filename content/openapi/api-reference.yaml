@@ -823,6 +823,117 @@ paths:
             key: UOrOmYyoeGNi
         key: v4RmdCZKpRK5
       x-gitbook-description-html: <p>Returns available routes based on specified parameters.</p>
+  /deposit:
+    get:
+      summary: Get all details for a single deposit
+      description: |
+        Returns a single deposit matching the provided query parameters.
+        Searches across all deposit types: Across intents (V3FundsDeposited), CCTP (DepositForBurn), OFT (OFTSent).
+
+        At least one of the following parameter combinations is required:
+        1. `depositTxnRef` or `depositTxHash` (deprecated)
+        2. `depositId` AND `originChainId`
+        3. `relayDataHash`
+      parameters:
+        - name: depositTxnRef
+          in: query
+          description: |
+            Transaction reference of the deposit. Replaces `depositTxHash` to support
+            non-EVM chains (e.g., Solana).
+          required: false
+          schema:
+            type: string
+          examples:
+            default:
+              value: "0x6cc666b81183d7386507508d82915afe81bf0bf641e86547dc602bc6af4fde32"
+        - name: depositTxHash
+          in: query
+          description: |
+            Transaction hash of the deposit. **Deprecated** — use `depositTxnRef` instead.
+          required: false
+          deprecated: true
+          schema:
+            type: string
+            example: "0x6cc666b81183d7386507508d82915afe81bf0bf641e86547dc602bc6af4fde32"
+        - name: depositId
+          in: query
+          description: |
+            Unique identifier of an Across intent deposit. Must be used together with `originChainId`.
+          required: false
+          schema:
+            type: string
+            example: "3797622"
+        - name: originChainId
+          in: query
+          description: |
+            Chain ID where the deposit originated. Must be used together with `depositId`.
+          required: false
+          schema:
+            type: integer
+            example: 1
+        - name: relayDataHash
+          in: query
+          description: Hash of the relay data, used to look up Across intent deposits.
+          required: false
+          schema:
+            type: string
+            example: "0xabc123..."
+        - name: index
+          in: query
+          description: |
+            Pagination index when multiple deposits exist in the same transaction.
+            Defaults to `0`.
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        "200":
+          description: Deposit found successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - deposit
+                  - pagination
+                properties:
+                  deposit:
+                    $ref: "#/components/schemas/SingleDeposit"
+                  pagination:
+                    $ref: "#/components/schemas/DepositPagination"
+        "400":
+          description: Missing or invalid query parameters.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    description: Human-readable error message.
+                    example: "Must provide at least one of: (depositId + originChainId), depositTxHash, depositTxnRef, or relayDataHash"
+        "404":
+          description: No deposit found matching the query.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    description: Human-readable error message.
+        "422":
+          description: Index parameter out of range for the matching deposits.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    description: Human-readable error message.
   /deposit/status:
     get:
       summary: Track the lifecycle of a deposit
@@ -6639,3 +6750,264 @@ components:
         - 421614
         - 11155420
         - 11155111
+    SingleDeposit:
+      type: object
+      required:
+        - id
+        - originChainId
+        - destinationChainId
+        - depositor
+        - recipient
+        - inputToken
+        - inputAmount
+        - outputToken
+        - outputAmount
+        - message
+        - status
+        - depositTxHash
+        - depositBlockNumber
+        - depositTxnRef
+      properties:
+        id:
+          type: integer
+          description: Internal database identifier.
+          example: 73606
+        relayHash:
+          type: string
+          nullable: true
+          description: Hash of the relay data.
+          example: null
+        depositId:
+          type: string
+          nullable: true
+          description: Across protocol deposit identifier.
+          example: null
+        originChainId:
+          type: integer
+          description: Chain ID where the deposit was made.
+          example: 1
+        destinationChainId:
+          type: integer
+          nullable: true
+          description: Chain ID where the deposit will be filled.
+          example: 8453
+        depositor:
+          type: string
+          description: Address of the depositor.
+          example: "0x0F7Ae28dE1C8532170AD4ee566B5801485c13a0E"
+        recipient:
+          type: string
+          description: Address of the recipient on the destination chain.
+          example: "0x133243d447026345c2B368d7fFe435dbe3C566Eb"
+        exclusiveRelayer:
+          type: string
+          nullable: true
+          description: Address of the exclusive relayer, if any.
+          example: null
+        inputToken:
+          type: string
+          description: Token address on the origin chain.
+          example: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+        inputAmount:
+          type: string
+          description: Amount of input token (in token's smallest unit).
+          example: "1100250000000"
+        outputToken:
+          type: string
+          nullable: true
+          description: Token address on the destination chain.
+          example: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
+        outputAmount:
+          type: string
+          nullable: true
+          description: Amount of output token (in token's smallest unit).
+          example: "1100139975000"
+        swapOutputToken:
+          type: string
+          nullable: true
+          description: Token address from destination swap metadata, if applicable.
+          example: null
+        swapOutputTokenAmount:
+          type: string
+          nullable: true
+          description: Minimum amount out from destination swap metadata, if applicable.
+          example: null
+        message:
+          type: string
+          description: Arbitrary message data attached to the deposit.
+          example: "0xd4aee56e..."
+        messageHash:
+          type: string
+          nullable: true
+          description: Hash of the message data.
+          example: null
+        exclusivityDeadline:
+          type: string
+          format: date-time
+          nullable: true
+          description: Deadline for the exclusive relayer to fill the deposit.
+          example: null
+        fillDeadline:
+          type: string
+          format: date-time
+          nullable: true
+          description: Deadline by which the deposit must be filled.
+          example: null
+        quoteTimestamp:
+          type: string
+          format: date-time
+          description: Timestamp used for quoting the bridge fee.
+          example: "2026-04-01T16:10:35.000Z"
+        depositTxHash:
+          type: string
+          description: "Transaction hash of the deposit. **Deprecated** — use `depositTxnRef`."
+          example: "0x6cc666b81183d7386507508d82915afe81bf0bf641e86547dc602bc6af4fde32"
+        depositTxnRef:
+          type: string
+          nullable: true
+          description: Transaction reference of the deposit (chain-agnostic replacement for depositTxHash).
+          example: "0x6cc666b81183d7386507508d82915afe81bf0bf641e86547dc602bc6af4fde32"
+        depositBlockNumber:
+          type: integer
+          description: Block number in which the deposit was included.
+          example: 24785853
+        depositBlockTimestamp:
+          type: string
+          format: date-time
+          nullable: true
+          description: Timestamp of the deposit block.
+          example: "2026-04-01T16:10:35.000Z"
+        status:
+          type: string
+          description: Current status of the deposit.
+          enum:
+            - unfilled
+            - filled
+            - slowFillRequested
+            - slowFilled
+            - expired
+            - refunded
+          example: "filled"
+        depositRefundTxHash:
+          type: string
+          nullable: true
+          description: Transaction hash of the refund, if the deposit was refunded.
+          example: null
+        depositRefundTxnRef:
+          type: string
+          nullable: true
+          description: Transaction reference of the refund (chain-agnostic).
+          example: null
+        swapTokenPriceUsd:
+          type: string
+          nullable: true
+          description: USD price of the swap token at the time of the deposit.
+          example: null
+        swapFeeUsd:
+          type: string
+          nullable: true
+          description: Swap fee in USD.
+          example: null
+        bridgeFeeUsd:
+          type: string
+          nullable: true
+          description: Bridge fee in USD.
+          example: "110.025"
+        inputPriceUsd:
+          type: string
+          nullable: true
+          description: USD price of the input token.
+          example: null
+        outputPriceUsd:
+          type: string
+          nullable: true
+          description: USD price of the output token.
+          example: null
+        fillGasFee:
+          type: string
+          nullable: true
+          description: Gas fee for the fill transaction (in native token).
+          example: null
+        fillGasFeeUsd:
+          type: string
+          nullable: true
+          description: Gas fee for the fill transaction in USD.
+          example: null
+        fillGasTokenPriceUsd:
+          type: string
+          nullable: true
+          description: USD price of the gas token on the destination chain.
+          example: null
+        actionsSucceeded:
+          type: boolean
+          nullable: true
+          description: Whether post-fill actions (e.g., swaps) succeeded.
+          example: null
+        actionsTargetChainId:
+          type: integer
+          nullable: true
+          description: Chain ID targeted by post-fill actions.
+          example: null
+        swapTransactionHash:
+          type: string
+          nullable: true
+          description: Transaction hash of the origin swap, if applicable.
+          example: null
+        swapToken:
+          type: string
+          nullable: true
+          description: Address of the token swapped on origin.
+          example: null
+        swapTokenAmount:
+          type: string
+          nullable: true
+          description: Amount of the swapped token.
+          example: null
+        relayer:
+          type: string
+          nullable: true
+          description: Address of the relayer that filled the deposit.
+          example: null
+        fillBlockNumber:
+          type: integer
+          nullable: true
+          description: Block number of the fill transaction.
+          example: 44135258
+        fillBlockTimestamp:
+          type: string
+          format: date-time
+          nullable: true
+          description: Timestamp of the fill block.
+          example: "2026-04-01T16:11:03.000Z"
+        fillTx:
+          type: string
+          nullable: true
+          description: "Transaction hash of the fill. **Deprecated** — use `fillTxnRef`."
+          example: "0x85dd6122644779d9b369861a6e4fff8330c9eab1b1f1e44490bd2003e1314c78"
+        fillTxnRef:
+          type: string
+          nullable: true
+          description: Transaction reference of the fill (chain-agnostic).
+          example: "0x85dd6122644779d9b369861a6e4fff8330c9eab1b1f1e44490bd2003e1314c78"
+        speedups:
+          type: array
+          nullable: true
+          description: List of speedup transactions that updated the deposit parameters.
+          items:
+            type: object
+    DepositPagination:
+      type: object
+      required:
+        - currentIndex
+        - maxIndex
+      properties:
+        currentIndex:
+          type: integer
+          description: The current deposit index (corresponds to the `index` query parameter).
+          example: 0
+        maxIndex:
+          type: integer
+          description: |
+            Maximum valid index for this query. When `maxIndex > 0`, multiple deposits
+            exist in the same transaction and can be paginated using `index`.
+          example: 0
