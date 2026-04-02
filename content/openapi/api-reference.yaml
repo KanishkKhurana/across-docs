@@ -831,7 +831,7 @@ paths:
         Searches across all deposit types: Across intents (V3FundsDeposited), CCTP (DepositForBurn), OFT (OFTSent).
 
         At least one of the following parameter combinations is required:
-        1. `depositTxnRef` or `depositTxHash` (deprecated)
+        1. `depositTxnRef`
         2. `depositId` AND `originChainId`
         3. `relayDataHash`
       parameters:
