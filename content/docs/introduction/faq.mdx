@@ -1,0 +1,36 @@
+---
+title: Technical FAQ
+icon: CircleHelp
+description: Frequently asked questions about integrating Across Protocol.
+---
+
+import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
+
+<Accordions type="single">
+  <Accordion title="Should I use the API versus the App SDK to integrate Across?">
+    We recommend using the [App SDK](/guides/dev-guides/integrate-swap-api) for the easiest way to integrate Across into your dApp.
+  </Accordion>
+
+  <Accordion title="What is the behavior of ETH / WETH in transfers?">
+    Depending on the context, Across will sometimes send a user ETH and sometimes send a user WETH.
+
+    - If the input asset is **ETH**, and the recipient is an **EOA** — the EOA will receive **ETH**
+    - If the input asset is **ETH**, and the recipient is a **contract** — the contract will receive **WETH** (not ETH)
+    - If the input asset is **WETH**, and the recipient is an **EOA** — the EOA will receive **ETH** (not WETH)
+    - If the input asset is **WETH**, and the recipient is a **contract** — the contract will receive **WETH**
+  </Accordion>
+
+  <Accordion title="How do I deposit using ETH instead of WETH?">
+    To deposit ETH, or the native token for a network, set `msg.value = inputAmount`. To deposit WETH, set `msg.value = 0`. When depositing ETH or WETH, the `inputAmount` should be the same and the `inputToken` should be the WETH address for the current chain.
+  </Accordion>
+
+  <Accordion title="While bridging, funds got deducted from my wallet on origin chain but I haven't received them on destination chain yet.">
+    If a deposit wasn't filled, the lifecycle of the deposit can be tracked using the [deposit status API](/api-reference/deposit/status/get) and refunds are issued once a deposit expires.
+
+    Note: refunds are only issued on mainnet deposits.
+  </Accordion>
+
+  <Accordion title="What is the recommended fillDeadline to be used while making a deposit to the Across SpokePool contracts?">
+    Recommended `fillDeadline` to be used while making a deposit is **6 hours** from the time of deposit. This ensures the best experience for the user, especially in tricky situations where a deposit is being [slow filled](/guides/concepts/intent-lifecycle).
+  </Accordion>
+</Accordions>
