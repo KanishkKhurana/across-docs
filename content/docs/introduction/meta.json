@@ -27,6 +27,7 @@
     "relayers/running-relayer.mdx",
     "relayers/relayer-nomination.mdx",
     "---Resources---",
-    "bug-bounty"
+    "bug-bounty",
+    "crosschain-live"
   ]
 }
