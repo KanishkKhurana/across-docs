@@ -5912,6 +5912,8 @@ paths:
         The response includes the deposit address, token details, and an optional
         swap transaction that must be executed before sending funds (e.g. for token
         approvals or wrapping).
+
+        Note: Arbitrum is the only supported origin chain and HyperEVM/HyperCore are the supported destination chains for now.
       parameters:
         - name: useDepositAddress
           in: query

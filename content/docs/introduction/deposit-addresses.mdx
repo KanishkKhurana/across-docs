@@ -14,7 +14,7 @@ import { Step, Steps } from 'fumadocs-ui/components/steps';
 
 <Callout type="warn">
   **Supported routes.** <br/>
-  Deposit addresses currently only support USDC (Arbitrum, Ethereum, Base) to USDH (HyperEVM, HyperCore). More routes will be added soon.
+  Deposit addresses currently only support USDC (Arbitrum only) to USDH (HyperEVM, HyperCore). More routes will be added soon.
 </Callout>
 
 ## Overview
@@ -91,6 +91,33 @@ This is ideal for:
     3. Completes the crosschain swap
 
     The recipient receives the output token on the destination chain.
+  </Step>
+  <Step>
+    ### Track the deposit
+
+    Poll `/deposit/status` with the `depositAddress` to monitor progress:
+
+    ```ts title="track-deposit.ts"
+    const statusRes = await fetch(
+      `https://app.across.to/api/deposit/status?depositAddress=${data.depositAddress}&index=0`
+    );
+    const status = await statusRes.json();
+
+    console.log("Status:", status.status);
+    console.log("Deposit tx ref:", status.depositTxnRef);
+    ```
+
+    Once you have the `depositTxnRef`, query `/deposit` for full execution details including fees:
+
+    ```ts title="get-deposit-details.ts"
+    const depositRes = await fetch(
+      `https://app.across.to/api/deposit?depositTxnRef=${status.depositTxnRef}`
+    );
+    const deposit = await depositRes.json();
+
+    console.log("Fees:", deposit.fees);
+    console.log("Fill tx:", deposit.fillTxnRef);
+    ```
   </Step>
 </Steps>
 
